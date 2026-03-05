@@ -1,0 +1,5 @@
+{
+  "id": "job_abc123",
+  "query": "index=main | head 10",
+  "status": "completed"
+}

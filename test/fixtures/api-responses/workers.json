@@ -1,0 +1,7 @@
+{
+  "items": [
+    { "id": "default", "name": "default", "workerCount": 3 },
+    { "id": "prod", "name": "Production", "workerCount": 10 }
+  ],
+  "count": 2
+}

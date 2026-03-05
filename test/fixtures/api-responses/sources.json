@@ -1,0 +1,7 @@
+{
+  "items": [
+    { "id": "syslog:in_syslog", "type": "syslog", "disabled": false },
+    { "id": "http:in_http", "type": "http", "disabled": false }
+  ],
+  "count": 2
+}
