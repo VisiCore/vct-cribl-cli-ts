@@ -55,9 +55,18 @@ export function registerRoutesCommand(program: Command): void {
         const newRoute = JSON.parse(json);
 
         // Fetch existing route table and append the new route
-        const existing = await listRoutes(client, group) as Record<string, unknown>;
-        const existingRoutes = (existing.routes ?? []) as Record<string, unknown>[];
-        existingRoutes.push(newRoute);
+        const existing = await getRoute(client, group, "default") as Record<string, unknown>;
+        const items = (existing.items ?? [existing]) as Record<string, unknown>[];
+        const routeTable = items[0] ?? existing;
+        const existingRoutes = ((routeTable.routes ?? []) as Record<string, unknown>[]).slice();
+
+        // Insert before the last route if it's a catch-all (filter: "true", final: true)
+        const lastRoute = existingRoutes[existingRoutes.length - 1];
+        if (lastRoute && lastRoute.filter === "true" && lastRoute.final === true) {
+          existingRoutes.splice(existingRoutes.length - 1, 0, newRoute);
+        } else {
+          existingRoutes.push(newRoute);
+        }
 
         const data = await updateRoute(client, group, "default", { routes: existingRoutes });
         console.log(formatOutput(data));
