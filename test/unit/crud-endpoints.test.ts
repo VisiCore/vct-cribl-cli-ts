@@ -1,9 +1,9 @@
 import { describe, it, expect, afterEach } from "vitest";
 import nock from "nock";
 import axios from "axios";
-import { listSources, getSource, createSource, updateSource, deleteSource } from "../../src/api/endpoints/sources.js";
-import { listDestinations, getDestination, createDestination, updateDestination, deleteDestination } from "../../src/api/endpoints/destinations.js";
-import { listRoutes, getRoute, createRoute, updateRoute, deleteRoute } from "../../src/api/endpoints/routes.js";
+import { getSource, createSource, updateSource, deleteSource } from "../../src/api/endpoints/sources.js";
+import { getDestination, createDestination, updateDestination, deleteDestination } from "../../src/api/endpoints/destinations.js";
+import { createRoute, updateRoute, deleteRoute } from "../../src/api/endpoints/routes.js";
 import { createLookup } from "../../src/api/endpoints/lookups.js";
 import { createDashboard } from "../../src/api/endpoints/dashboards.js";
 import { createCredential, updateCredential, deleteCredential } from "../../src/api/endpoints/credentials.js";
@@ -16,14 +16,8 @@ const client = () => axios.create({ baseURL: BASE });
 describe("CRUD API endpoints", () => {
   afterEach(() => nock.cleanAll());
 
-  // Sources CRUD
+  // Sources CRUD (listSources tested in endpoints.test.ts)
   describe("sources", () => {
-    it("listSources", async () => {
-      nock(BASE).get("/api/v1/m/default/system/inputs").reply(200, { items: [{ id: "s1", type: "syslog" }] });
-      const data = await listSources(client(), "default");
-      expect(data.items[0].id).toBe("s1");
-    });
-
     it("getSource", async () => {
       nock(BASE).get("/api/v1/m/default/system/inputs/s1").reply(200, { items: [{ id: "s1", type: "syslog" }] });
       const data = await getSource(client(), "default", "s1");
@@ -48,14 +42,8 @@ describe("CRUD API endpoints", () => {
     });
   });
 
-  // Destinations CRUD
+  // Destinations CRUD (listDestinations tested in endpoints.test.ts)
   describe("destinations", () => {
-    it("listDestinations", async () => {
-      nock(BASE).get("/api/v1/m/default/system/outputs").reply(200, { items: [{ id: "d1", type: "s3" }] });
-      const data = await listDestinations(client(), "default");
-      expect(data.items[0].id).toBe("d1");
-    });
-
     it("getDestination", async () => {
       nock(BASE).get("/api/v1/m/default/system/outputs/d1").reply(200, { items: [{ id: "d1", type: "s3" }] });
       const data = await getDestination(client(), "default", "d1");

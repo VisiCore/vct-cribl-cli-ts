@@ -47,7 +47,7 @@ export function registerSourcesCommand(program: Command): void {
     .requiredOption("-t, --type <type>", "Source type (e.g. syslog, http, tcp)")
     .requiredOption("--id <id>", "Source ID")
     .option("-g, --group <name>", "Worker group name")
-    .option("--host <host>", "Listen host", "0.0.0.0")
+    .option("--host <host>", "Listen host")
     .option("--port <port>", "Listen port")
     .option("--disabled", "Create source in disabled state")
     .option("--json-config <json>", "Full JSON config (overrides other options)")

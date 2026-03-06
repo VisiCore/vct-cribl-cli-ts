@@ -131,10 +131,8 @@ export function registerVersionCommand(program: Command): void {
         const client = getClient();
         const group = await resolveGroup(client, opts.group);
         const commitResult = await commitVersion(client, group, message);
-        console.log(formatOutput({ step: "commit", result: commitResult }));
         const pushResult = await pushVersion(client, group);
-        console.log(formatOutput({ step: "push", result: pushResult }));
-        console.log(formatOutput({ message: "Deploy complete: committed and pushed." }));
+        console.log(formatOutput({ commit: commitResult, push: pushResult, message: "Deploy complete: committed and pushed." }));
       } catch (err) {
         handleError(err);
       }
