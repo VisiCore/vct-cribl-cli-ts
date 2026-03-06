@@ -2,51 +2,27 @@
 
 A command-line interface for the Cribl Cloud REST API. Manage worker groups, pipelines, routes, search, and more directly from your terminal.
 
-## Why a CLI When There's an MCP Server?
+## Why a CLI Instead of MCP?
 
-Cribl already ships an [MCP server](https://docs.cribl.io/copilot/cribl-mcp-server/) that lets AI assistants like Claude interact with the Cribl API. So why also build a CLI?
+Cribl ships an [MCP server](https://docs.cribl.io/copilot/cribl-mcp-server/) for AI assistants. MCP is great for discovery — an agent can browse available tools and figure out what to call. But once you know *what* you need, a CLI is simpler, faster, and more useful.
 
-**They serve different users and workflows:**
+**A CLI is just a shell command.** Any AI agent with terminal access (Claude Code, Cursor, Windsurf, etc.) can call it directly — no protocol layer, no JSON-RPC, no server to run. The agent runs `cribl sources list -g prod`, gets JSON back, and moves on. That's it. No handshake, no tool registration, no schema negotiation.
 
-| | MCP Server | CLI |
-|---|---|---|
-| **Audience** | AI assistants (Claude, Copilot, etc.) | Humans, scripts, CI/CD pipelines |
-| **Interface** | JSON-RPC protocol, invisible to user | Terminal commands, visible and auditable |
-| **Output** | Structured data for AI reasoning | JSON to stdout (pipe to `jq`) or `--table` for humans |
-| **Auth** | Managed by the MCP host | `cribl config set` — you own the credentials |
-| **Composability** | AI decides what to call | Shell pipelines, cron jobs, Makefiles |
+**CLIs work for humans too.** MCP only works inside an AI host. A CLI works everywhere — shell scripts, cron jobs, CI/CD pipelines, `jq` pipelines, and your terminal. One tool, every context.
 
-### When to Use the CLI
+**Debugging is trivial.** When something breaks, you re-run the command and see exactly what happened. With MCP, you're digging through protocol logs to figure out what the agent sent and what the server returned.
 
-- **Shell scripting and automation**: `cribl workers list | jq '.[] | select(.workerCount > 5)'`
-- **CI/CD pipelines**: Deploy configs, run searches, check health in GitHub Actions
-- **Quick terminal lookups**: Faster than opening the Cribl UI for a one-off check
-- **Audit trails**: Every command is visible in shell history — no black box
-- **Offline/air-gapped environments**: Works anywhere Node.js runs, no AI dependency
-- **Cron and monitoring**: `cribl system health` in a health check script
-
-### When to Use MCP
-
-- **Natural language queries**: "Which worker groups have the most traffic?"
-- **Multi-step reasoning**: AI can chain multiple API calls, interpret results, and suggest actions
-- **Exploratory analysis**: "Look at my pipelines and suggest optimizations"
-- **Context-aware assistance**: AI remembers your conversation and builds on prior findings
-
-### Using Both Together
-
-The CLI is also a great tool **for AI agents themselves**. An AI coding assistant (like Claude Code) can shell out to `cribl` commands to get structured JSON, parse it, and act on the results — without needing the MCP protocol at all. This makes it useful as a lightweight alternative to MCP for agents that already have shell access.
+For a deeper take on this, see [Why CLIs Beat MCP for AI Agents](https://medium.com/@rentierdigital/why-clis-beat-mcp-for-ai-agents-and-how-to-build-your-own-cli-army-6c27b0aec969).
 
 ```bash
-# AI agent can run this and parse the JSON directly
-cribl search run "dataset='cribl_metrics' metric=='health.outputs'" --wait
+# AI agent or human — same command, same output
+cribl sources list -g prod | jq '.[].id'
 
-# Pipe CLI output into other tools
-cribl pipelines list -g default | jq '.[] | select(.disabled == true) | .id'
+# Automate in CI/CD
+cribl version deploy -g prod "Deploy from GitHub Actions"
 
-# Use in a monitoring script
-if ! cribl system health | jq -e '.status == "healthy"' > /dev/null; then
-  echo "ALERT: Cribl unhealthy" | mail -s "Cribl Health Check" ops@company.com
-fi
+# Monitor in cron
+cribl system health | jq -e '.status == "healthy"' || alert "Cribl down"
 ```
 
 ## Quick Start
@@ -304,12 +280,32 @@ Config priority: CLI flags > environment variables > `~/.criblrc` profile.
 
 ### Edge
 
+#### Fleet-scoped
+
 | Command | Description |
 |---|---|
 | `cribl edge containers -f <fleet>` | List containers on edge nodes |
 | `cribl edge processes -f <fleet>` | List processes on edge nodes |
 | `cribl edge logs -f <fleet>` | Get edge node logs |
 | `cribl edge metadata -f <fleet>` | Get edge node metadata |
+| `cribl edge events -f <fleet>` | Get edge events |
+| `cribl edge files <path> -f <fleet>` | Browse edge files |
+| `cribl edge ls <path> -f <fleet>` | List edge directory contents |
+| `cribl edge kube-logs -f <fleet>` | Get Kubernetes logs |
+
+#### Node-scoped
+
+| Command | Description |
+|---|---|
+| `cribl edge nodes [-f <fleet>]` | List edge nodes (optionally filtered by fleet) |
+| `cribl edge system-info <node>` | Get system info (CPU, memory, disk, network) |
+| `cribl edge system-info-raw <node>` | Get raw system info JSON |
+| `cribl edge inputs <node>` | Get inputs/sources for a node |
+| `cribl edge outputs <node>` | Get outputs/destinations for a node |
+| `cribl edge metrics <node> [-d duration] [--summary]` | Historical metrics (CPU, memory, disk, load) |
+| `cribl edge fileinspect <node> <path>` | Inspect a file (stat, MD5, SHA256, head, hexdump) |
+| `cribl edge node-ls <node> <path> [--stats]` | List directory contents on a specific node |
+| `cribl edge file-search <node> <path> [-q query] [-l limit]` | Search or read file contents on a node |
 
 ### Event Breakers
 
