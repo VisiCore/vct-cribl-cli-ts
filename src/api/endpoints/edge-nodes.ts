@@ -109,6 +109,31 @@ export interface MetricsDataPoint {
   [key: string]: unknown;
 }
 
+export async function getEdgeNodeFileInspect(
+  client: AxiosInstance,
+  nodeId: string,
+  filePath: string
+): Promise<unknown> {
+  const resp = await client.get(
+    `/api/v1/w/${encodeURIComponent(nodeId)}/edge/fileinspect`,
+    { params: { path: filePath } }
+  );
+  return resp.data;
+}
+
+export async function listEdgeNodeFiles(
+  client: AxiosInstance,
+  nodeId: string,
+  dirPath: string,
+  stats = false
+): Promise<unknown> {
+  const resp = await client.get(
+    `/api/v1/w/${encodeURIComponent(nodeId)}/edge/ls${dirPath}`,
+    { params: stats ? { stats: true } : {} }
+  );
+  return resp.data;
+}
+
 export async function getNodeMetrics(
   client: AxiosInstance,
   nodeId: string,

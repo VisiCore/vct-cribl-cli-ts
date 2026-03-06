@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { getClient } from "../api/client.js";
 import { listContainers, listProcesses, getEdgeLogs, getEdgeMetadata, getEdgeEvents, getEdgeFile, listEdgeFiles, getEdgeKubeLogs } from "../api/endpoints/edge.js";
-import { listEdgeNodes, findEdgeNode, getEdgeNodeSystemInfo, getEdgeNodeInputs, getEdgeNodeOutputs, getNodeMetrics } from "../api/endpoints/edge-nodes.js";
+import { listEdgeNodes, findEdgeNode, getEdgeNodeSystemInfo, getEdgeNodeInputs, getEdgeNodeOutputs, getNodeMetrics, getEdgeNodeFileInspect, listEdgeNodeFiles } from "../api/endpoints/edge-nodes.js";
 import { formatOutput } from "../output/formatter.js";
 import { handleError } from "../utils/errors.js";
 
@@ -281,6 +281,49 @@ export function registerEdgeCommand(program: Command): void {
           process.exit(1);
         }
         const data = await getEdgeNodeOutputs(client, found.id);
+        console.log(formatOutput(data, { table: opts.table }));
+      } catch (err) {
+        handleError(err);
+      }
+    });
+
+  cmd
+    .command("fileinspect")
+    .description("Inspect a file on an edge node (stat, hashes, head, hexdump)")
+    .argument("<node>", "Node hostname or ID")
+    .argument("<path>", "File path on the node")
+    .option("--table", "Table output")
+    .action(async (node: string, filePath: string, opts) => {
+      try {
+        const client = getClient();
+        const found = await findEdgeNode(client, node);
+        if (!found) {
+          console.error(`Node "${node}" not found.`);
+          process.exit(1);
+        }
+        const data = await getEdgeNodeFileInspect(client, found.id, filePath);
+        console.log(formatOutput(data, { table: opts.table }));
+      } catch (err) {
+        handleError(err);
+      }
+    });
+
+  cmd
+    .command("node-ls")
+    .description("List directory contents on a specific edge node")
+    .argument("<node>", "Node hostname or ID")
+    .argument("<path>", "Directory path on the node")
+    .option("--stats", "Include file stats (size, permissions, timestamps)")
+    .option("--table", "Table output")
+    .action(async (node: string, dirPath: string, opts) => {
+      try {
+        const client = getClient();
+        const found = await findEdgeNode(client, node);
+        if (!found) {
+          console.error(`Node "${node}" not found.`);
+          process.exit(1);
+        }
+        const data = await listEdgeNodeFiles(client, found.id, dirPath, opts.stats);
         console.log(formatOutput(data, { table: opts.table }));
       } catch (err) {
         handleError(err);
