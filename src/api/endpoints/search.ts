@@ -13,7 +13,7 @@ export async function runSearch(
   opts: RunSearchOpts
 ): Promise<SearchJob> {
   const group = opts.group ?? "default_search";
-  const resp = await client.post<SearchJob>(
+  const resp = await client.post(
     `/api/v1/m/${encodeURIComponent(group)}/search/jobs`,
     {
       query: opts.query,
@@ -21,7 +21,12 @@ export async function runSearch(
       latest: opts.latest ?? "now",
     }
   );
-  return resp.data;
+  const data = resp.data as Record<string, unknown>;
+  // API wraps response in { items: [...] } — unwrap to get the job object
+  if (data.items && Array.isArray(data.items) && data.items.length > 0) {
+    return data.items[0] as SearchJob;
+  }
+  return data as unknown as SearchJob;
 }
 
 export async function listSearchJobs(
@@ -41,10 +46,14 @@ export async function getSearchJobStatus(
   group?: string
 ): Promise<SearchJob> {
   const g = group ?? "default_search";
-  const resp = await client.get<SearchJob>(
+  const resp = await client.get(
     `/api/v1/m/${encodeURIComponent(g)}/search/jobs/${encodeURIComponent(jobId)}`
   );
-  return resp.data;
+  const data = resp.data as Record<string, unknown>;
+  if (data.items && Array.isArray(data.items) && data.items.length > 0) {
+    return data.items[0] as SearchJob;
+  }
+  return data as unknown as SearchJob;
 }
 
 export async function getSearchResults(
