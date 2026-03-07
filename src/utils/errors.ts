@@ -18,7 +18,18 @@ export class AuthenticationError extends Error {
   }
 }
 
+export class DryRunAbort extends Error {
+  constructor(message = "Dry run complete") {
+    super(message);
+    this.name = "DryRunAbort";
+  }
+}
+
 export function handleError(err: unknown): never {
+  if (err instanceof DryRunAbort) {
+    process.exit(0);
+  }
+
   if (err instanceof CriblApiError) {
     process.stderr.write(
       JSON.stringify({ error: err.message, statusCode: err.statusCode, details: err.body }, null, 2) + "\n"

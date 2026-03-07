@@ -23,6 +23,9 @@ cribl version deploy -g prod "Deploy from GitHub Actions"
 
 # Monitor in cron
 cribl system health | jq -e '.status == "healthy"' || alert "Cribl down"
+
+# Preview what an API call will do without executing it
+cribl sources list -g prod --dry-run
 ```
 
 ## Quick Start
@@ -91,17 +94,17 @@ Config priority: CLI flags > environment variables > `~/.criblrc` profile.
 
 ## Commands
 
-The CLI covers the full Cribl API across 30+ command groups. Here's a summary — see [docs/commands.md](docs/commands.md) for the complete reference.
+The CLI covers 68 command groups across the full Cribl API. Here's a summary — see [docs/commands.md](docs/commands.md) for the complete reference.
 
 | Group | What it does |
 |---|---|
 | `config` | Manage CLI profiles and credentials |
 | `workers` | List/deploy worker groups |
-| `sources` | CRUD source configurations |
-| `destinations` | CRUD destination configurations |
+| `sources` | CRUD source configurations (merge-on-update) |
+| `destinations` | CRUD destination configurations (merge-on-update) |
 | `pipelines` | CRUD pipelines, clone between groups |
-| `routes` | CRUD routes (auto-inserts before catch-all) |
-| `packs` | Manage and export packs |
+| `routes` | CRUD routes (auto-inserts before catch-all, merge-on-update) |
+| `packs` | Manage packs |
 | `lookups` | Manage lookup tables |
 | `search` | Run queries, manage jobs, get results |
 | `datasets` | List search datasets |
@@ -115,22 +118,7 @@ The CLI covers the full Cribl API across 30+ command groups. Here's a summary �
 | `system` | Health, info, settings, instance details |
 | `metrics` | Query system metrics |
 | `edge` | Edge node management — [see guide](docs/edge.md) |
-| `event-breakers` | List/get event breaker rulesets |
-| `parsers` | List/get parsers |
-| `global-vars` | CRUD global variables |
-| `schemas` | List/get schemas |
-| `regex` | List/get regex patterns |
-| `grok` | List/get grok patterns |
-| `db-connections` | CRUD database connections |
-| `functions` | List/get pipeline functions |
-| `certificates` | Manage certificates |
-| `credentials` | CRUD credentials |
-| `samples` | List/get sample data |
-| `scripts` | Manage scripts |
-| `licenses` | List/get licenses |
-| `teams` | CRUD teams |
-| `policies` | CRUD RBAC policies |
-| `notification-targets` | CRUD notification targets |
+| ... | 45+ more: event-breakers, parsers, global-vars, schemas, regex, grok, db-connections, functions, certificates, credentials, samples, scripts, licenses, teams, policies, notification-targets, collectors, conditions, executors, parquet-schemas, protobuf-libs, hmac-functions, sds-rules, sds-rulesets, appscope, banners, encryption-keys, messages, subscriptions, kms, feature-flags, auth-settings, git-settings, ai-settings, workspaces, outposts, dataset-providers, macros, dashboard-categories, trust-policies, usage-groups, datatypes, lake-datasets, storage-locations, preview, logger, profiler |
 
 ## Global Options
 
@@ -141,7 +129,34 @@ The CLI covers the full Cribl API across 30+ command groups. Here's a summary �
 | `--client-id <id>` | Override OAuth client ID |
 | `--client-secret <secret>` | Override OAuth client secret |
 | `--verbose` | Log HTTP requests/responses to stderr |
+| `--dry-run` | Show the HTTP request without executing it |
 | `--table` | Format output as a table (available on most commands) |
+
+## --dry-run
+
+The `--dry-run` flag prints the HTTP request that *would* be sent (method, URL, headers, body) to stderr and exits without making any API call. Useful for debugging and safe for AI agents to preview destructive operations.
+
+```bash
+# See what API call a command would make
+cribl parsers list -g default --dry-run
+# stderr: { "dry_run": true, "method": "GET", "url": "https://...", ... }
+# exits 0, no API call made
+
+cribl sources update my-source '{"streamtags":["vct"]}' -g prod --dry-run
+# stderr: { "dry_run": true, "method": "PATCH", "url": "...", "body": {...} }
+```
+
+## Merge-on-Update
+
+The `update` command for all resources (sources, destinations, routes, and all factory-generated commands) automatically fetches the existing config, merges your changes on top, and then PATCHes. This means you can update individual fields without losing the rest of the config:
+
+```bash
+# Only send the fields you want to change — existing config is preserved
+cribl sources update my-source '{"streamtags":["vct","ai"]}' -g prod
+
+# Without merge-on-update, the Cribl API would strip all fields not included
+# in the PATCH body. This CLI handles that for you.
+```
 
 ## Output
 
@@ -171,26 +186,46 @@ npm run test:watch   # Watch mode
 npm run lint         # Type check
 ```
 
-## Project Structure
+## Architecture
+
+The CLI uses a **factory pattern** to eliminate boilerplate. ~49 standard CRUD commands are generated from a declarative registry, while ~19 commands with custom logic remain hand-written.
 
 ```
-bin/cribl.ts                  # Entry point
+bin/cribl.ts                     # Entry point
 src/
-  cli.ts                      # Commander program setup
-  config/                     # Config loading + types
-  auth/oauth.ts               # OAuth2 + token caching
+  cli.ts                         # Commander program setup + --dry-run
+  config/                        # Config loading + types
+  auth/oauth.ts                  # OAuth2 + token caching
   api/
-    client.ts                 # Axios client with auth interceptor
-    types.ts                  # API response types
-    endpoints/                # One file per API resource
-  commands/                   # One file per command group
-  output/formatter.ts         # JSON + table formatting
-  utils/                      # Errors, pagination, group resolver
+    client.ts                    # Axios client with auth + dry-run interceptor
+    endpoint-factory.ts          # Generic CRUD endpoint factory (4 scopes)
+    types.ts                     # API response types
+    endpoints/                   # Hand-written endpoints (19 special resources)
+  commands/
+    command-factory.ts           # Commander CRUD subcommand generator
+    registry.ts                  # Declarative list of ~49 standard commands
+    ...                          # Hand-written commands (19 special resources)
+  output/formatter.ts            # JSON + table formatting
+  utils/                         # Errors (incl. DryRunAbort), pagination, group resolver
 test/
-  unit/                       # Unit tests (vitest + nock)
-  integration/                # Live API tests (CRIBL_INTEGRATION_TEST=true)
-  fixtures/                   # Mock API responses
+  unit/                          # Unit tests (vitest + nock)
+  integration/                   # Live API tests (CRIBL_INTEGRATION_TEST=true)
+  fixtures/                      # Mock API responses
 ```
+
+### Adding a New Standard Command
+
+To add a new CRUD command, just add one line to `src/commands/registry.ts`:
+
+```typescript
+{ name: "my-resource", description: "Manage my resources", scope: "group", path: "lib/my-resource" }
+```
+
+This generates `list`, `get`, `create`, `update`, `delete` subcommands with group resolution, error handling, and merge-on-update — no endpoint or command file needed.
+
+Supported scopes: `group` (`/api/v1/m/{group}/...`), `global` (`/api/v1/...`), `search` (`/api/v1/m/{group}/search/...`), `lake` (`/api/v1/products/lake/lakes/{id}/...`).
+
+For operations subsets, add `operations: ["list", "get"]`.
 
 ## License
 

@@ -4,10 +4,8 @@ import axios from "axios";
 import { getSource, createSource, updateSource, deleteSource } from "../../src/api/endpoints/sources.js";
 import { getDestination, createDestination, updateDestination, deleteDestination } from "../../src/api/endpoints/destinations.js";
 import { createRoute, updateRoute, deleteRoute } from "../../src/api/endpoints/routes.js";
-import { createLookup } from "../../src/api/endpoints/lookups.js";
-import { createDashboard } from "../../src/api/endpoints/dashboards.js";
-import { createCredential, updateCredential, deleteCredential } from "../../src/api/endpoints/credentials.js";
 import { getWorkerGroup, deployGroup } from "../../src/api/endpoints/workers.js";
+import { createEndpoints } from "../../src/api/endpoint-factory.js";
 import { getNotebook, deleteNotebook } from "../../src/api/endpoints/notebooks.js";
 
 const BASE = "https://mock.cribl.cloud";
@@ -88,41 +86,45 @@ describe("CRUD API endpoints", () => {
     });
   });
 
-  // Lookups create
-  describe("lookups", () => {
+  // Lookups create (via factory)
+  describe("lookups (factory)", () => {
     it("createLookup", async () => {
       nock(BASE).post("/api/v1/m/default/system/lookups").reply(200, { id: "geo" });
-      const data = await createLookup(client(), "default", { id: "geo" });
+      const endpoints = createEndpoints({ scope: "group", path: "system/lookups" });
+      const data = await endpoints.create(client(), "default", { id: "geo" });
       expect(data.id).toBe("geo");
     });
   });
 
-  // Dashboards create
-  describe("dashboards", () => {
+  // Dashboards create (via factory)
+  describe("dashboards (factory)", () => {
     it("createDashboard", async () => {
       nock(BASE).post("/api/v1/m/default_search/search/dashboards").reply(200, { id: "dash1" });
-      const data = await createDashboard(client(), { id: "dash1" });
+      const endpoints = createEndpoints({ scope: "search", path: "dashboards" });
+      const data = await endpoints.create(client(), "default_search", { id: "dash1" });
       expect(data.id).toBe("dash1");
     });
   });
 
-  // Credentials CRUD
-  describe("credentials", () => {
+  // Credentials CRUD (via factory)
+  describe("credentials (factory)", () => {
+    const endpoints = createEndpoints({ scope: "group", path: "system/credentials" });
+
     it("createCredential", async () => {
       nock(BASE).post("/api/v1/m/default/system/credentials").reply(200, { id: "cred1" });
-      const data = await createCredential(client(), "default", { id: "cred1" });
+      const data = await endpoints.create(client(), "default", { id: "cred1" });
       expect(data.id).toBe("cred1");
     });
 
     it("updateCredential", async () => {
       nock(BASE).patch("/api/v1/m/default/system/credentials/cred1").reply(200, { id: "cred1", description: "updated" });
-      const data = await updateCredential(client(), "default", "cred1", { description: "updated" });
+      const data = await endpoints.update(client(), "default", "cred1", { description: "updated" });
       expect(data.description).toBe("updated");
     });
 
     it("deleteCredential", async () => {
       nock(BASE).delete("/api/v1/m/default/system/credentials/cred1").reply(200);
-      await expect(deleteCredential(client(), "default", "cred1")).resolves.toBeUndefined();
+      await expect(endpoints.delete(client(), "default", "cred1")).resolves.toBeUndefined();
     });
   });
 
@@ -135,7 +137,7 @@ describe("CRUD API endpoints", () => {
     });
 
     it("deployGroup", async () => {
-      nock(BASE).get("/api/v1/master/groups/default").reply(200, { items: [{ id: "default", configVersion: "abc123" }] });
+      nock(BASE).get("/api/v1/master/groups/default/configVersion").reply(200, { items: ["abc123"] });
       nock(BASE).patch("/api/v1/master/groups/default/deploy", { version: "abc123" }).reply(200, { id: "default", configVersion: "abc123" });
       const data = await deployGroup(client(), "default");
       expect((data as Record<string, unknown>).configVersion).toBe("abc123");

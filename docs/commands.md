@@ -1,6 +1,8 @@
 # Command Reference
 
-Full list of all `cribl` CLI commands. All group-scoped commands accept `-g <group>` (defaults to first worker group). Most commands support `--table` for human-readable output.
+Full list of all `cribl` CLI commands. All group-scoped commands accept `-g <group>` (defaults to first worker group). Most commands support `--table` for human-readable output. All commands support `--dry-run` to preview the HTTP request without executing it.
+
+The `update` subcommand on all resources uses **merge-on-update**: it fetches the existing config, merges your changes on top, then PATCHes — so you only need to send the fields you want to change.
 
 ## Configuration
 
@@ -25,7 +27,7 @@ Full list of all `cribl` CLI commands. All group-scoped commands accept `-g <gro
 | `cribl sources list [-g group]` | List source configurations |
 | `cribl sources get <id> [-g group]` | Get a source by ID |
 | `cribl sources create [options] [-g group]` | Create a source (`--type`, `--id`, `--json-config`) |
-| `cribl sources update <id> <json> [-g group]` | Update a source |
+| `cribl sources update <id> <json> [-g group]` | Update a source (merge-on-update) |
 | `cribl sources delete <id> [-g group]` | Delete a source |
 
 ## Destinations
@@ -35,7 +37,7 @@ Full list of all `cribl` CLI commands. All group-scoped commands accept `-g <gro
 | `cribl destinations list [-g group]` | List destination configurations |
 | `cribl destinations get <id> [-g group]` | Get a destination by ID |
 | `cribl destinations create [options] [-g group]` | Create a destination (`--type`, `--id`, `--json-config`) |
-| `cribl destinations update <id> <json> [-g group]` | Update a destination |
+| `cribl destinations update <id> <json> [-g group]` | Update a destination (merge-on-update) |
 | `cribl destinations delete <id> [-g group]` | Delete a destination |
 
 ## Pipelines
@@ -56,27 +58,8 @@ Full list of all `cribl` CLI commands. All group-scoped commands accept `-g <gro
 | `cribl routes list [-g group]` | List routes |
 | `cribl routes get <id> [-g group]` | Get a route by ID |
 | `cribl routes create <json> [-g group]` | Create a route (appends before catch-all) |
-| `cribl routes update <id> <json> [-g group]` | Update a route |
+| `cribl routes update <id> <json> [-g group]` | Update a route (merge-on-update, updates in place) |
 | `cribl routes delete <id> [-g group]` | Delete a route |
-
-## Packs
-
-| Command | Description |
-|---|---|
-| `cribl packs list [-g group]` | List packs |
-| `cribl packs get <id> [-g group]` | Get a pack by ID |
-| `cribl packs create <json> [-g group]` | Create a pack |
-| `cribl packs delete <id> [-g group]` | Delete a pack |
-| `cribl packs export <id> [-g group]` | Export a pack |
-
-## Lookups
-
-| Command | Description |
-|---|---|
-| `cribl lookups list [-g group]` | List lookup tables |
-| `cribl lookups get <id> [-g group]` | Get a lookup by ID |
-| `cribl lookups create <json> [-g group]` | Create a lookup |
-| `cribl lookups delete <id> [-g group]` | Delete a lookup |
 
 ## Search
 
@@ -92,36 +75,6 @@ Full list of all `cribl` CLI commands. All group-scoped commands accept `-g <gro
 | `cribl search job-metrics <job-id>` | Get search job metrics |
 | `cribl search job-diag <job-id>` | Get search job diagnostics |
 
-## Datasets
-
-| Command | Description |
-|---|---|
-| `cribl datasets list [-g group]` | List search datasets |
-
-## Notebooks
-
-| Command | Description |
-|---|---|
-| `cribl notebooks list [-g group]` | List search notebooks |
-| `cribl notebooks get <id> [-g group]` | Get a notebook by ID |
-| `cribl notebooks add --notebook-id <id> --query <q>` | Add query to a notebook |
-| `cribl notebooks delete <id> [-g group]` | Delete a notebook |
-
-## Dashboards
-
-| Command | Description |
-|---|---|
-| `cribl dashboards list [-g group]` | List dashboards |
-| `cribl dashboards get <id> [-g group]` | Get a dashboard by ID |
-| `cribl dashboards create <json> [-g group]` | Create a dashboard |
-| `cribl dashboards delete <id> [-g group]` | Delete a dashboard |
-
-## Alerts
-
-| Command | Description |
-|---|---|
-| `cribl alerts list` | List alert notifications |
-
 ## Jobs
 
 | Command | Description |
@@ -134,30 +87,14 @@ Full list of all `cribl` CLI commands. All group-scoped commands accept `-g <gro
 | `cribl jobs resume <id> [-g group]` | Resume a paused job |
 | `cribl jobs configs [-g group]` | List saved job configurations |
 
-## Users & Roles
+## Notebooks
 
 | Command | Description |
 |---|---|
-| `cribl users list` | List users |
-| `cribl users get <id>` | Get a user by ID |
-| `cribl users create <json>` | Create a user |
-| `cribl users update <id> <json>` | Update a user |
-| `cribl users delete <id>` | Delete a user |
-| `cribl roles list` | List RBAC roles |
-| `cribl roles get <id>` | Get a role by ID |
-| `cribl roles create <json>` | Create a role |
-| `cribl roles update <id> <json>` | Update a role |
-| `cribl roles delete <id>` | Delete a role |
-
-## Secrets
-
-| Command | Description |
-|---|---|
-| `cribl secrets list [-g group]` | List secrets |
-| `cribl secrets get <id> [-g group]` | Get a secret by ID |
-| `cribl secrets create <json> [-g group]` | Create a secret |
-| `cribl secrets update <id> <json> [-g group]` | Update a secret |
-| `cribl secrets delete <id> [-g group]` | Delete a secret |
+| `cribl notebooks list [-g group]` | List search notebooks |
+| `cribl notebooks get <id> [-g group]` | Get a notebook by ID |
+| `cribl notebooks add --notebook-id <id> --query <q>` | Add query to a notebook |
+| `cribl notebooks delete <id> [-g group]` | Delete a notebook |
 
 ## Version Control
 
@@ -182,6 +119,13 @@ Full list of all `cribl` CLI commands. All group-scoped commands accept `-g <gro
 | `cribl system health` | Get system health |
 | `cribl system instance` | Get instance information |
 | `cribl system worker-health` | Get worker health |
+| `cribl system logs` | List system logs |
+| `cribl system log <id>` | Get a specific system log |
+| `cribl system diag` | Get diagnostics |
+| `cribl system diag-send` | Send diagnostics to Cribl |
+| `cribl system restart` | Restart the system |
+| `cribl system reload` | Reload configuration |
+| `cribl system upgrade` | Check for upgrades |
 
 ## Metrics
 
@@ -189,136 +133,115 @@ Full list of all `cribl` CLI commands. All group-scoped commands accept `-g <gro
 |---|---|
 | `cribl metrics get [--filter expr] [--names n1,n2]` | Get system metrics |
 
-## Event Breakers
+## Edge
+
+See [docs/edge.md](edge.md) for the full Edge guide.
 
 | Command | Description |
 |---|---|
-| `cribl event-breakers list [-g group]` | List event breaker rulesets |
-| `cribl event-breakers get <id> [-g group]` | Get an event breaker ruleset |
+| `cribl edge nodes [-f fleet]` | List managed edge nodes |
+| `cribl edge system-info <host>` | System summary (CPU, memory, disk) |
+| `cribl edge system-info-raw <host>` | Full raw system info JSON |
+| `cribl edge inputs <host>` | List sources on a node |
+| `cribl edge outputs <host>` | List destinations on a node |
+| `cribl edge metrics <host> [-d duration]` | Historical metrics time series |
+| `cribl edge containers [-f fleet]` | List containers |
+| `cribl edge processes [-f fleet]` | List processes |
+| `cribl edge events [-f fleet]` | List events |
+| `cribl edge files <host>` | Inspect files on a node |
+| `cribl edge ls <host> [path]` | List directory on a node |
+| `cribl edge file-search <host> <query>` | Search files on a node |
+| `cribl edge kube-logs [-f fleet]` | Get Kubernetes logs |
 
-## Parsers
+## Singleton Settings (Hand-Written)
 
-| Command | Description |
-|---|---|
-| `cribl parsers list [-g group]` | List parsers |
-| `cribl parsers get <id> [-g group]` | Get a parser |
-
-## Global Variables
-
-| Command | Description |
-|---|---|
-| `cribl global-vars list [-g group]` | List global variables |
-| `cribl global-vars get <id> [-g group]` | Get a global variable |
-| `cribl global-vars create <json> [-g group]` | Create a global variable |
-| `cribl global-vars update <id> <json> [-g group]` | Update a global variable |
-| `cribl global-vars delete <id> [-g group]` | Delete a global variable |
-
-## Schemas
+These resources are single-config endpoints (get/update), not standard CRUD:
 
 | Command | Description |
 |---|---|
-| `cribl schemas list [-g group]` | List schemas |
-| `cribl schemas get <id> [-g group]` | Get a schema |
+| `cribl auth-settings get` | Get authentication settings |
+| `cribl auth-settings update <json>` | Update authentication settings |
+| `cribl git-settings get` | Get git settings |
+| `cribl git-settings update <json>` | Update git settings |
+| `cribl kms get` | Get KMS configuration |
+| `cribl kms update <json>` | Update KMS configuration |
+| `cribl kms health` | Get KMS health status |
+| `cribl logger get [-g group]` | Get logger configuration |
+| `cribl logger set <json> [-g group]` | Set logger configuration |
+| `cribl profiler get [-g group]` | Get profiler status |
+| `cribl profiler start [-g group]` | Start profiler |
+| `cribl profiler stop [-g group]` | Stop profiler |
+| `cribl preview run <json> [-g group]` | Run a data preview |
 
-## Regex Library
+## Standard CRUD Commands (Factory-Generated)
 
-| Command | Description |
-|---|---|
-| `cribl regex list [-g group]` | List regex patterns |
-| `cribl regex get <id> [-g group]` | Get a regex pattern |
+The following commands are generated from a declarative registry. Each has `list`, `get`, `create`, `update`, `delete` subcommands unless noted otherwise. All `update` commands use merge-on-update.
 
-## Grok Patterns
+### Group-Scoped (accept `-g <group>`)
 
-| Command | Description |
-|---|---|
-| `cribl grok list [-g group]` | List grok patterns |
-| `cribl grok get <id> [-g group]` | Get a grok pattern |
+| Command | Operations | API Path |
+|---|---|---|
+| `cribl parsers` | full CRUD | `lib/parsers` |
+| `cribl schemas` | full CRUD | `lib/schemas` |
+| `cribl regex` | full CRUD | `lib/regex` |
+| `cribl grok` | full CRUD | `lib/grok` |
+| `cribl event-breakers` | full CRUD | `lib/breakers` |
+| `cribl global-vars` | full CRUD | `lib/vars` |
+| `cribl db-connections` | full CRUD | `lib/database-connections` |
+| `cribl secrets` | full CRUD | `system/secrets` |
+| `cribl credentials` | full CRUD | `system/credentials` |
+| `cribl collectors` | full CRUD | `collectors` |
+| `cribl conditions` | full CRUD | `conditions` |
+| `cribl parquet-schemas` | full CRUD | `lib/parquet-schemas` |
+| `cribl protobuf-libs` | full CRUD | `lib/protobuf-libraries` |
+| `cribl sds-rules` | full CRUD | `lib/sds-rules` |
+| `cribl sds-rulesets` | full CRUD | `lib/sds-rulesets` |
+| `cribl appscope` | full CRUD | `lib/appscope-configs` |
+| `cribl certificates` | list, get, create, delete | `system/certificates` |
+| `cribl samples` | list, get, create, delete | `system/samples` |
+| `cribl scripts` | list, get, create, delete | `system/scripts` |
+| `cribl lookups` | list, get, create, delete | `system/lookups` |
+| `cribl packs` | list, get, create, delete | `packs` |
+| `cribl executors` | list, get | `executors` |
+| `cribl hmac-functions` | list, get | `lib/hmac-functions` |
+| `cribl functions` | list, get | `functions` |
 
-## Database Connections
+### Global (no group required)
 
-| Command | Description |
-|---|---|
-| `cribl db-connections list [-g group]` | List database connections |
-| `cribl db-connections get <id> [-g group]` | Get a database connection |
-| `cribl db-connections create <json> [-g group]` | Create a database connection |
-| `cribl db-connections update <id> <json> [-g group]` | Update a database connection |
-| `cribl db-connections delete <id> [-g group]` | Delete a database connection |
+| Command | Operations | API Path |
+|---|---|---|
+| `cribl users` | full CRUD | `system/users` |
+| `cribl roles` | full CRUD | `system/roles` |
+| `cribl teams` | full CRUD | `system/teams` |
+| `cribl policies` | full CRUD | `system/policies` |
+| `cribl banners` | full CRUD | `system/banners` |
+| `cribl encryption-keys` | full CRUD | `system/keys` |
+| `cribl notification-targets` | full CRUD | `notification-targets` |
+| `cribl workspaces` | full CRUD | `workspaces` |
+| `cribl messages` | list, get, create, delete | `system/messages` |
+| `cribl licenses` | list, get | `system/licenses` |
+| `cribl subscriptions` | list, get | `system/subscriptions` |
+| `cribl outposts` | list, get | `master/outposts` |
+| `cribl alerts` | list | `notifications` |
+| `cribl feature-flags` | list, get, update | `settings/features` |
+| `cribl ai-settings` | list, get, update | `ai/settings/features` |
 
-## Functions
+### Search-Scoped (accept `-g <group>`, defaults to `default_search`)
 
-| Command | Description |
-|---|---|
-| `cribl functions list [-g group]` | List pipeline functions |
-| `cribl functions get <id> [-g group]` | Get a function |
+| Command | Operations | API Path |
+|---|---|---|
+| `cribl macros` | full CRUD | `search/macros` |
+| `cribl dataset-providers` | full CRUD | `search/dataset-providers` |
+| `cribl dashboard-categories` | full CRUD | `search/dashboard-categories` |
+| `cribl trust-policies` | full CRUD | `search/trust-policies` |
+| `cribl datatypes` | full CRUD | `search/datatypes` |
+| `cribl datasets` | list | `search/datasets` |
+| `cribl dashboards` | list, get, create, delete | `search/dashboards` |
+| `cribl usage-groups` | list, get | `search/usage-groups` |
 
-## Certificates
+### Lake-Scoped (require `--lake <id>`)
 
-| Command | Description |
-|---|---|
-| `cribl certificates list [-g group]` | List certificates |
-| `cribl certificates get <id> [-g group]` | Get a certificate |
-| `cribl certificates create <json> [-g group]` | Create a certificate |
-| `cribl certificates delete <id> [-g group]` | Delete a certificate |
-
-## Credentials
-
-| Command | Description |
-|---|---|
-| `cribl credentials list [-g group]` | List credentials |
-| `cribl credentials get <id> [-g group]` | Get a credential |
-| `cribl credentials create <json> [-g group]` | Create a credential |
-| `cribl credentials update <id> <json> [-g group]` | Update a credential |
-| `cribl credentials delete <id> [-g group]` | Delete a credential |
-
-## Samples
-
-| Command | Description |
-|---|---|
-| `cribl samples list [-g group]` | List sample data files |
-| `cribl samples get <id> [-g group]` | Get a sample file |
-
-## Scripts
-
-| Command | Description |
-|---|---|
-| `cribl scripts list [-g group]` | List scripts |
-| `cribl scripts get <id> [-g group]` | Get a script |
-| `cribl scripts create <json> [-g group]` | Create a script |
-| `cribl scripts delete <id> [-g group]` | Delete a script |
-
-## Licenses
-
-| Command | Description |
-|---|---|
-| `cribl licenses list` | List licenses |
-| `cribl licenses get <id>` | Get a license |
-
-## Teams
-
-| Command | Description |
-|---|---|
-| `cribl teams list` | List teams |
-| `cribl teams get <id>` | Get a team |
-| `cribl teams create <json>` | Create a team |
-| `cribl teams update <id> <json>` | Update a team |
-| `cribl teams delete <id>` | Delete a team |
-
-## Policies
-
-| Command | Description |
-|---|---|
-| `cribl policies list` | List RBAC policies |
-| `cribl policies get <id>` | Get a policy |
-| `cribl policies create <json>` | Create a policy |
-| `cribl policies update <id> <json>` | Update a policy |
-| `cribl policies delete <id>` | Delete a policy |
-
-## Notification Targets
-
-| Command | Description |
-|---|---|
-| `cribl notification-targets list` | List notification targets |
-| `cribl notification-targets get <id>` | Get a notification target |
-| `cribl notification-targets create <json>` | Create a notification target |
-| `cribl notification-targets update <id> <json>` | Update a notification target |
-| `cribl notification-targets delete <id>` | Delete a notification target |
+| Command | Operations | API Path |
+|---|---|---|
+| `cribl lake-datasets` | full CRUD | `products/lake/lakes/{id}/datasets` |
+| `cribl storage-locations` | full CRUD | `products/lake/lakes/{id}/storage-locations` |

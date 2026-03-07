@@ -3,16 +3,11 @@ import nock from "nock";
 import axios from "axios";
 import { listPipelines, getPipeline } from "../../src/api/endpoints/pipelines.js";
 import { listRoutes } from "../../src/api/endpoints/routes.js";
-import { listPacks } from "../../src/api/endpoints/packs.js";
-import { listLookups } from "../../src/api/endpoints/lookups.js";
 import { listJobs, listJobConfigs } from "../../src/api/endpoints/jobs.js";
-import { listUsers } from "../../src/api/endpoints/users.js";
-import { listRoles } from "../../src/api/endpoints/roles.js";
-import { listSecrets } from "../../src/api/endpoints/secrets.js";
 import { getVersionInfo, getVersionStatus } from "../../src/api/endpoints/version.js";
 import { getSystemInfo, getHealth } from "../../src/api/endpoints/system.js";
-import { listDashboards } from "../../src/api/endpoints/dashboards.js";
 import { listContainers, listProcesses } from "../../src/api/endpoints/edge.js";
+import { createEndpoints } from "../../src/api/endpoint-factory.js";
 
 const BASE = "https://mock.cribl.cloud";
 const client = () => axios.create({ baseURL: BASE });
@@ -38,15 +33,17 @@ describe("New API endpoints", () => {
     expect(data.id).toBe("default");
   });
 
-  it("listPacks", async () => {
+  it("listPacks (via factory)", async () => {
     nock(BASE).get("/api/v1/m/default/packs").reply(200, { items: [{ id: "pack1", version: "1.0" }] });
-    const data = await listPacks(client(), "default");
+    const endpoints = createEndpoints({ scope: "group", path: "packs" });
+    const data = await endpoints.list(client(), "default");
     expect(data.items[0].id).toBe("pack1");
   });
 
-  it("listLookups", async () => {
+  it("listLookups (via factory)", async () => {
     nock(BASE).get("/api/v1/m/default/system/lookups").reply(200, { items: [{ id: "geoip" }] });
-    const data = await listLookups(client(), "default");
+    const endpoints = createEndpoints({ scope: "group", path: "system/lookups" });
+    const data = await endpoints.list(client(), "default");
     expect(data.items[0].id).toBe("geoip");
   });
 
@@ -62,21 +59,24 @@ describe("New API endpoints", () => {
     expect(data.items[0].id).toBe("collector1");
   });
 
-  it("listUsers", async () => {
+  it("listUsers (via factory)", async () => {
     nock(BASE).get("/api/v1/system/users").reply(200, { items: [{ id: "admin", username: "admin" }] });
-    const data = await listUsers(client());
+    const endpoints = createEndpoints({ scope: "global", path: "system/users" });
+    const data = await endpoints.list(client(), "_global_");
     expect(data.items[0].username).toBe("admin");
   });
 
-  it("listRoles", async () => {
+  it("listRoles (via factory)", async () => {
     nock(BASE).get("/api/v1/system/roles").reply(200, { items: [{ id: "admin" }] });
-    const data = await listRoles(client());
+    const endpoints = createEndpoints({ scope: "global", path: "system/roles" });
+    const data = await endpoints.list(client(), "_global_");
     expect(data.items[0].id).toBe("admin");
   });
 
-  it("listSecrets", async () => {
+  it("listSecrets (via factory)", async () => {
     nock(BASE).get("/api/v1/m/default/system/secrets").reply(200, { items: [{ id: "mykey" }] });
-    const data = await listSecrets(client(), "default");
+    const endpoints = createEndpoints({ scope: "group", path: "system/secrets" });
+    const data = await endpoints.list(client(), "default");
     expect(data.items[0].id).toBe("mykey");
   });
 
@@ -104,9 +104,10 @@ describe("New API endpoints", () => {
     expect(data).toHaveProperty("status", "healthy");
   });
 
-  it("listDashboards", async () => {
+  it("listDashboards (via factory)", async () => {
     nock(BASE).get("/api/v1/m/default_search/search/dashboards").reply(200, { items: [{ id: "dash1" }] });
-    const data = await listDashboards(client());
+    const endpoints = createEndpoints({ scope: "search", path: "dashboards" });
+    const data = await endpoints.list(client(), "default_search");
     expect(data.items[0].id).toBe("dash1");
   });
 

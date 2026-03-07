@@ -85,7 +85,21 @@ export function registerRoutesCommand(program: Command): void {
       try {
         const client = getClient();
         const group = await resolveGroup(client, opts.group);
-        const data = await updateRoute(client, group, id, JSON.parse(json));
+        const changes = JSON.parse(json);
+
+        // Fetch existing route table, find the route, merge, and update the whole table
+        const existing = await getRoute(client, group, "default") as Record<string, unknown>;
+        const items = (existing.items ?? [existing]) as Record<string, unknown>[];
+        const routeTable = items[0] ?? existing;
+        const routes = ((routeTable.routes ?? []) as Record<string, unknown>[]).slice();
+
+        const idx = routes.findIndex((r) => r.id === id);
+        if (idx === -1) {
+          throw new Error(`Route '${id}' not found in the route table.`);
+        }
+        routes[idx] = { ...routes[idx], ...changes };
+
+        const data = await updateRoute(client, group, "default", { routes });
         console.log(formatOutput(data));
       } catch (err) {
         handleError(err);

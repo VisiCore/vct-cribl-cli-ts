@@ -87,7 +87,10 @@ export function registerSourcesCommand(program: Command): void {
       try {
         const client = getClient();
         const group = await resolveGroup(client, opts.group);
-        const data = await updateSource(client, group, id, JSON.parse(json));
+        const existing = await getSource(client, group, id);
+        const { status, notifications, ...cleanExisting } = existing as Record<string, unknown>;
+        const merged = { ...cleanExisting, ...JSON.parse(json) };
+        const data = await updateSource(client, group, id, merged);
         console.log(formatOutput(data));
       } catch (err) {
         handleError(err);

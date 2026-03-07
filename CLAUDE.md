@@ -14,37 +14,54 @@ npm run lint         # tsc --noEmit — type check only
 
 ## Architecture
 
+The CLI uses a **factory pattern** to eliminate boilerplate. ~49 standard CRUD commands are generated from a declarative registry, while ~19 commands with custom logic remain hand-written.
+
 ```
-bin/cribl.ts                  → Entry point (#!/usr/bin/env node)
-src/cli.ts                    → Commander program setup, registers all 68 command groups
-src/config/                   → Config loading (CLI flags > env vars > ~/.criblrc profiles)
-src/auth/oauth.ts             → OAuth2 cloud + local auth with token caching
-src/api/client.ts             → Axios client with auth interceptor (getClient singleton)
-src/api/types.ts              → Shared API response types (ListResponse, etc.)
-src/api/endpoints/            → One file per API resource (CRUD functions)
-src/commands/                 → One file per command group (Commander registration)
-src/output/formatter.ts       → JSON (default) + --table mode (cli-table3)
-src/utils/errors.ts           → handleError() — formats errors to stderr as JSON
-src/utils/pagination.ts       → Pagination helpers
-src/utils/group-resolver.ts   → resolveGroup() — defaults to first worker group if -g omitted
+bin/cribl.ts                     → Entry point (#!/usr/bin/env node)
+src/cli.ts                       → Commander program setup, --dry-run flag, registers commands
+src/config/                      → Config loading (CLI flags > env vars > ~/.criblrc profiles)
+src/auth/oauth.ts                → OAuth2 cloud + local auth with token caching
+src/api/client.ts                → Axios client with auth interceptor + dry-run interceptor
+src/api/endpoint-factory.ts      → Generic CRUD endpoint factory (group/global/search/lake scopes)
+src/api/types.ts                 → Shared API response types (ListResponse, etc.)
+src/api/endpoints/               → Hand-written endpoints for special resources (19 files)
+src/commands/command-factory.ts  → Generates Commander CRUD subcommands from config
+src/commands/registry.ts         → Declarative list of ~49 standard commands
+src/commands/                    → Hand-written commands for special resources (19 files)
+src/output/formatter.ts          → JSON (default) + --table mode (cli-table3)
+src/utils/errors.ts              → handleError() + DryRunAbort — formats errors to stderr as JSON
+src/utils/pagination.ts          → Pagination helpers
+src/utils/group-resolver.ts      → resolveGroup() — defaults to first worker group if -g omitted
 ```
 
 ## How to Add a New Command Group
 
-1. **Types** — Add any new types to `src/api/types.ts` if needed
-2. **Endpoint file** — Create `src/api/endpoints/<resource>.ts` with CRUD functions:
-   - `list<Resource>(client, group)` → `GET /api/v1/m/{group}/<resource>`
-   - `get<Resource>(client, group, id)` → `GET /api/v1/m/{group}/<resource>/{id}`
-   - `create<Resource>(client, group, data)` → `POST /api/v1/m/{group}/<resource>`
-   - `update<Resource>(client, group, id, data)` → `PATCH /api/v1/m/{group}/<resource>/{id}`
-   - `delete<Resource>(client, group, id)` → `DELETE /api/v1/m/{group}/<resource>/{id}`
-3. **Command file** — Create `src/commands/<resource>.ts` with `registerXCommand(program)`:
-   - Each subcommand: `list`, `get`, `create`, `update`, `delete`
-   - Use `resolveGroup()` for group-scoped resources
-   - Use `formatOutput()` for JSON/table output
-   - Wrap actions in try/catch with `handleError()`
-4. **Register** — Add import + `registerXCommand(program)` call in `src/cli.ts`
-5. **Tests** — Add nock-based tests in `test/unit/`
+### Standard CRUD command (preferred)
+
+Just add one line to `src/commands/registry.ts`:
+
+```typescript
+{ name: "my-resource", description: "Manage my resources", scope: "group", path: "lib/my-resource" }
+```
+
+This generates `list`, `get`, `create`, `update`, `delete` subcommands with group resolution, error handling, merge-on-update, and `--table` output.
+
+Supported scopes:
+- `group` → `/api/v1/m/{group}/{path}`
+- `global` → `/api/v1/{path}`
+- `search` → `/api/v1/m/{group}/search/{path}` (defaults to `default_search`)
+- `lake` → `/api/v1/products/lake/lakes/{id}/{path}` (requires `--lake`)
+
+For operation subsets: `operations: ["list", "get"]`
+
+### Custom command (escape hatch)
+
+For commands with non-CRUD logic (routes, edge, search, etc.):
+
+1. **Endpoint file** — Create `src/api/endpoints/<resource>.ts` with custom functions
+2. **Command file** — Create `src/commands/<resource>.ts` with `registerXCommand(program)`
+3. **Register** — Add import + `registerXCommand(program)` call in `src/cli.ts`
+4. **Tests** — Add nock-based tests in `test/unit/`
 
 ## API Endpoint Patterns
 
@@ -53,6 +70,14 @@ src/utils/group-resolver.ts   → resolveGroup() — defaults to first worker gr
 | **Global** (no group) | `/api/v1/<resource>` | users, roles, system, licenses, teams, policies |
 | **Group-scoped** | `/api/v1/m/{group}/<resource>` | pipelines, routes, sources, destinations, packs, lookups, secrets, version, credentials |
 | **Search-scoped** | `/api/v1/m/{search_group}/search/<resource>` | datasets, dashboards, notebooks, saved searches, search jobs |
+| **Lake-scoped** | `/api/v1/products/lake/lakes/{id}/<resource>` | lake-datasets, storage-locations |
+
+## Key Behaviors
+
+- **Merge-on-update** — All `update` commands (sources, destinations, routes, and all factory-generated) fetch the existing config, merge the user's changes on top, then PATCH. This prevents the Cribl API from stripping unspecified fields.
+- **--dry-run** — Root-level flag that prints `{ dry_run, method, url, headers, body }` to stderr and exits 0 without making any API call. Uses `DryRunAbort` error class.
+- **Routes create** — Fetches existing route table, inserts before the catch-all route, then PATCHes the whole table.
+- **Routes update** — Fetches the route table, finds the route by ID, merges changes, PATCHes the whole table.
 
 ## Key Gotchas
 
@@ -63,14 +88,16 @@ src/utils/group-resolver.ts   → resolveGroup() — defaults to first worker gr
 - `preAction` hook walks the parent chain to skip auth init for `config` subcommands
 - `getClient()` is a singleton — the `preAction` hook initializes it before command execution
 - Source/destination `create` commands accept `--type`/`--id` flags OR `--json-config` for full JSON
+- The Cribl API treats PATCH as a full replace (validates entire schema) — that's why merge-on-update is needed
 
 ## Test Patterns
 
-- **Unit tests**: vitest + nock for HTTP mocking
+- **Unit tests**: vitest + nock for HTTP mocking (172 tests)
 - Config tests mock `node:fs` to isolate from real `~/.criblrc`
 - Integration tests gated behind `CRIBL_INTEGRATION_TEST=true` env var
 - Test fixtures in `test/fixtures/`
-- Nock interceptors match against `https://test.cribl.cloud` base URL
+- Nock interceptors match against `https://test.cribl.cloud` or `https://mock.cribl.cloud` base URL
+- Endpoint factory tests cover all 4 scopes × 5 operations
 
 ## Answering Questions About Nodes
 

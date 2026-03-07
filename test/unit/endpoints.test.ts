@@ -5,9 +5,8 @@ import { listWorkerGroups } from "../../src/api/endpoints/workers.js";
 import { getSources, listSources } from "../../src/api/endpoints/sources.js";
 import { getDestinations, listDestinations } from "../../src/api/endpoints/destinations.js";
 import { getMetrics } from "../../src/api/endpoints/metrics.js";
-import { listDatasets } from "../../src/api/endpoints/datasets.js";
-import { listAlerts } from "../../src/api/endpoints/alerts.js";
 import { listNotebooks } from "../../src/api/endpoints/notebooks.js";
+import { createEndpoints } from "../../src/api/endpoint-factory.js";
 import { runSearch, listSearchJobs, getSearchResults, listSavedSearches } from "../../src/api/endpoints/search.js";
 
 const BASE = "https://mock.cribl.cloud";
@@ -58,21 +57,23 @@ describe("API endpoints", () => {
     expect(data).toHaveProperty("cpuUsage", 42);
   });
 
-  it("listDatasets", async () => {
+  it("listDatasets (via factory)", async () => {
     nock(BASE)
       .get("/api/v1/m/default_search/search/datasets")
       .reply(200, { items: [{ id: "ds1" }] });
 
-    const data = await listDatasets(mockClient());
+    const endpoints = createEndpoints({ scope: "search", path: "datasets" });
+    const data = await endpoints.list(mockClient(), "default_search");
     expect(data.items[0].id).toBe("ds1");
   });
 
-  it("listAlerts", async () => {
+  it("listAlerts (via factory)", async () => {
     nock(BASE)
       .get("/api/v1/notifications")
       .reply(200, { items: [{ id: "alert1" }] });
 
-    const data = await listAlerts(mockClient());
+    const endpoints = createEndpoints({ scope: "global", path: "notifications" });
+    const data = await endpoints.list(mockClient(), "_global_");
     expect(data.items[0].id).toBe("alert1");
   });
 

@@ -83,7 +83,10 @@ export function registerDestinationsCommand(program: Command): void {
       try {
         const client = getClient();
         const group = await resolveGroup(client, opts.group);
-        const data = await updateDestination(client, group, id, JSON.parse(json));
+        const existing = await getDestination(client, group, id);
+        const { status, notifications, ...cleanExisting } = existing as Record<string, unknown>;
+        const merged = { ...cleanExisting, ...JSON.parse(json) };
+        const data = await updateDestination(client, group, id, merged);
         console.log(formatOutput(data));
       } catch (err) {
         handleError(err);
