@@ -9,6 +9,7 @@ export interface EdgeNode {
   totalmem: number;
   platform: string;
   version: string;
+  distMode: string;
   [key: string]: unknown;
 }
 
@@ -47,6 +48,7 @@ export async function listEdgeNodes(
         totalmem: (info.totalmem as number) ?? 0,
         platform: (info.platform as string) ?? "",
         version: (cribl.version as string) ?? "",
+        distMode: (cribl.distMode as string) ?? "",
       };
     });
   return nodes;
@@ -145,6 +147,51 @@ export async function searchEdgeNodeFile(
   const resp = await client.post(
     `/api/v1/w/${encodeURIComponent(nodeId)}/edge/search/file`,
     { file: filePath, offset, limit, et: 0, query: query ?? "", rulesets: [] }
+  );
+  return resp.data;
+}
+
+export function isEdgeNode(node: EdgeNode): boolean {
+  return node.distMode === "managed-edge";
+}
+
+export interface WorkerLogFile {
+  id: string;
+  path: string;
+  size: number;
+}
+
+export interface WorkerLogSearchResult {
+  file: string;
+  nextOffset: string;
+  previousOffset: string;
+  events: Record<string, unknown>[];
+}
+
+export async function listWorkerLogs(
+  client: AxiosInstance,
+  nodeId: string
+): Promise<{ items: WorkerLogFile[]; count: number }> {
+  const resp = await client.get(
+    `/api/v1/w/${encodeURIComponent(nodeId)}/system/logs`
+  );
+  return resp.data;
+}
+
+export async function searchWorkerLog(
+  client: AxiosInstance,
+  nodeId: string,
+  logId: string,
+  filter?: string,
+  limit = 50,
+  offset?: string
+): Promise<{ items: WorkerLogSearchResult[]; count: number }> {
+  const params: Record<string, unknown> = { limit };
+  if (filter) params.filter = filter;
+  if (offset) params.offset = offset;
+  const resp = await client.get(
+    `/api/v1/w/${encodeURIComponent(nodeId)}/system/logs/${encodeURIComponent(logId)}`,
+    { params }
   );
   return resp.data;
 }

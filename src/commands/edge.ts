@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { getClient } from "../api/client.js";
 import { listContainers, listProcesses, getEdgeLogs, getEdgeMetadata, getEdgeEvents, getEdgeFile, listEdgeFiles, getEdgeKubeLogs } from "../api/endpoints/edge.js";
-import { listEdgeNodes, findEdgeNode, getEdgeNodeSystemInfo, getEdgeNodeInputs, getEdgeNodeOutputs, getNodeMetrics, getEdgeNodeFileInspect, listEdgeNodeFiles, searchEdgeNodeFile } from "../api/endpoints/edge-nodes.js";
+import { listEdgeNodes, findEdgeNode, getEdgeNodeSystemInfo, getEdgeNodeInputs, getEdgeNodeOutputs, getNodeMetrics, getEdgeNodeFileInspect, listEdgeNodeFiles, searchEdgeNodeFile, isEdgeNode, listWorkerLogs, searchWorkerLog } from "../api/endpoints/edge-nodes.js";
 import { formatOutput } from "../output/formatter.js";
 import { handleError } from "../utils/errors.js";
 
@@ -301,6 +301,11 @@ export function registerEdgeCommand(program: Command): void {
           console.error(`Node "${node}" not found.`);
           process.exit(1);
         }
+        if (!isEdgeNode(found)) {
+          console.error(`fileinspect is only supported on Edge nodes. "${found.hostname}" is a hybrid worker (distMode: ${found.distMode}).`);
+          console.error(`Use "edge file-search" to search Cribl log files on hybrid workers.`);
+          process.exit(1);
+        }
         const data = await getEdgeNodeFileInspect(client, found.id, filePath);
         console.log(formatOutput(data, { table: opts.table }));
       } catch (err) {
@@ -322,6 +327,13 @@ export function registerEdgeCommand(program: Command): void {
         if (!found) {
           console.error(`Node "${node}" not found.`);
           process.exit(1);
+        }
+        if (!isEdgeNode(found)) {
+          // Hybrid workers only support listing Cribl log files via system/logs
+          const data = await listWorkerLogs(client, found.id);
+          console.error(`Note: "${found.hostname}" is a hybrid worker — only Cribl log files are available.`);
+          console.log(formatOutput(data, { table: opts.table }));
+          return;
         }
         const data = await listEdgeNodeFiles(client, found.id, dirPath, opts.stats);
         console.log(formatOutput(data, { table: opts.table }));
@@ -347,6 +359,25 @@ export function registerEdgeCommand(program: Command): void {
         if (!found) {
           console.error(`Node "${node}" not found.`);
           process.exit(1);
+        }
+        if (!isEdgeNode(found)) {
+          // Hybrid workers: use system/logs API, extract log ID from path
+          const logId = filePath.replace(/^\/opt\/cribl\/log\//, "");
+          const data = await searchWorkerLog(
+            client, found.id, logId, opts.query,
+            parseInt(opts.limit, 10), opts.offset !== "0" ? opts.offset : undefined
+          );
+          if (opts.raw) {
+            const results = data.items ?? [];
+            for (const result of results) {
+              for (const e of result.events) {
+                console.log(JSON.stringify(e));
+              }
+            }
+          } else {
+            console.log(formatOutput(data, { table: opts.table }));
+          }
+          return;
         }
         const data = await searchEdgeNodeFile(
           client, found.id, filePath, opts.query,
