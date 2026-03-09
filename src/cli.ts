@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { loadConfig } from "./config/index.js";
-import { createClient } from "./api/client.js";
+import { createClient, setConfigError } from "./api/client.js";
 
 // Standard commands via factory + registry
 import { registerCrudCommand } from "./commands/command-factory.js";
@@ -22,8 +22,6 @@ import { registerSystemCommand } from "./commands/system.js";
 import { registerEdgeCommand } from "./commands/edge.js";
 // Singleton-style resources (no standard CRUD pattern)
 import { registerKmsCommand } from "./commands/kms.js";
-import { registerAuthSettingsCommand } from "./commands/auth-settings.js";
-import { registerGitSettingsCommand } from "./commands/git-settings.js";
 import { registerPreviewCommand } from "./commands/preview.js";
 import { registerLoggerCommand } from "./commands/logger.js";
 import { registerProfilerCommand } from "./commands/profiler.js";
@@ -71,8 +69,9 @@ export function buildProgram(): Command {
             return res;
           });
         }
-      } catch {
-        // Config will throw if not set — that's fine, error will surface at call time
+      } catch (err) {
+        // Store config error so getClient() can surface it with the original message
+        if (err instanceof Error) setConfigError(err);
       }
     });
 
@@ -91,8 +90,6 @@ export function buildProgram(): Command {
   registerSystemCommand(program);
   registerEdgeCommand(program);
   registerKmsCommand(program);
-  registerAuthSettingsCommand(program);
-  registerGitSettingsCommand(program);
   registerPreviewCommand(program);
   registerLoggerCommand(program);
   registerProfilerCommand(program);

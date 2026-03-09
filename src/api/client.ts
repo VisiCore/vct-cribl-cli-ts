@@ -5,6 +5,7 @@ import { DryRunAbort } from "../utils/errors.js";
 
 let clientInstance: AxiosInstance | null = null;
 let currentConfig: CriblConfig | null = null;
+let configError: Error | null = null;
 
 export interface ClientOptions {
   dryRun?: boolean;
@@ -45,14 +46,19 @@ export function createClient(config: CriblConfig, options?: ClientOptions): Axio
 
   clientInstance = client;
   currentConfig = config;
+  configError = null;
   return client;
 }
 
 export function getClient(): AxiosInstance {
   if (!clientInstance) {
-    throw new Error("API client not initialized. Run a config command first.");
+    throw configError ?? new Error("API client not initialized. Run a config command first.");
   }
   return clientInstance;
+}
+
+export function setConfigError(err: Error): void {
+  configError = err;
 }
 
 export function getConfig(): CriblConfig {

@@ -1,5 +1,6 @@
 import type { AxiosInstance } from "axios";
 import type { ApiListResponse, Source } from "../types.js";
+import { unwrapItem } from "../../utils/unwrap.js";
 
 function groupPath(group: string) {
   return `/api/v1/m/${encodeURIComponent(group)}`;
@@ -26,7 +27,7 @@ export async function getSource(
   const resp = await client.get<{ items: Source[] }>(
     `${groupPath(group)}/system/inputs/${encodeURIComponent(id)}`
   );
-  return resp.data.items?.[0] ?? resp.data;
+  return unwrapItem(resp.data as { items?: Source[] } & Source);
 }
 
 export async function createSource(

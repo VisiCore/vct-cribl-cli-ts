@@ -13,6 +13,7 @@ export interface CommandConfig {
   scope: EndpointScope;
   path: string;
   operations?: CrudOperation[];
+  singleton?: boolean;
 }
 
 const DEFAULT_OPS: CrudOperation[] = ["list", "get", "create", "update", "delete"];
@@ -48,7 +49,7 @@ async function resolveGroupForScope(
 export function registerCrudCommand(program: Command, config: CommandConfig): void {
   const { name, description, scope, path } = config;
   const ops = config.operations ?? DEFAULT_OPS;
-  const endpoints = createEndpoints({ scope, path });
+  const endpoints = createEndpoints({ scope, path, singleton: config.singleton });
   const label = getResourceLabel(name);
   const cmd = program.command(name).description(description);
 
@@ -80,15 +81,27 @@ export function registerCrudCommand(program: Command, config: CommandConfig): vo
   }
 
   if (ops.includes("get")) {
-    const sub = cmd.command("get").description(`Get a ${label} by ID`).argument("<id>", `${label} ID`);
-    addGroupOption(sub).option("--table", "Table output");
-    sub.action(async (id: string, opts) => {
-      try {
-        const client = getClient();
-        const g = await resolveGroupForScope(client, scope, getGroupOrLake(opts));
-        console.log(formatOutput(await endpoints.get(client, g, id), { table: opts.table }));
-      } catch (e) { handleError(e); }
-    });
+    if (config.singleton) {
+      const sub = cmd.command("get").description(`Get ${label}`);
+      addGroupOption(sub).option("--table", "Table output");
+      sub.action(async (opts) => {
+        try {
+          const client = getClient();
+          const g = await resolveGroupForScope(client, scope, getGroupOrLake(opts));
+          console.log(formatOutput(await endpoints.get(client, g, ""), { table: opts.table }));
+        } catch (e) { handleError(e); }
+      });
+    } else {
+      const sub = cmd.command("get").description(`Get a ${label} by ID`).argument("<id>", `${label} ID`);
+      addGroupOption(sub).option("--table", "Table output");
+      sub.action(async (id: string, opts) => {
+        try {
+          const client = getClient();
+          const g = await resolveGroupForScope(client, scope, getGroupOrLake(opts));
+          console.log(formatOutput(await endpoints.get(client, g, id), { table: opts.table }));
+        } catch (e) { handleError(e); }
+      });
+    }
   }
 
   if (ops.includes("create")) {
@@ -104,18 +117,35 @@ export function registerCrudCommand(program: Command, config: CommandConfig): vo
   }
 
   if (ops.includes("update")) {
-    const sub = cmd.command("update").description(`Update a ${label}`).argument("<id>", `${label} ID`).argument("<json>", `${label} JSON config`);
-    addGroupOption(sub);
-    sub.action(async (id: string, json: string, opts) => {
-      try {
-        const client = getClient();
-        const g = await resolveGroupForScope(client, scope, getGroupOrLake(opts));
-        const existing = await endpoints.get(client, g, id);
-        const { status, notifications, ...cleanExisting } = existing;
-        const merged = { ...cleanExisting, ...JSON.parse(json) };
-        console.log(formatOutput(await endpoints.update(client, g, id, merged)));
-      } catch (e) { handleError(e); }
-    });
+    if (config.singleton) {
+      const sub = cmd.command("update").description(`Update ${label}`).argument("<json>", `${label} JSON config`);
+      addGroupOption(sub);
+      sub.action(async (json: string, opts) => {
+        try {
+          const client = getClient();
+          const g = await resolveGroupForScope(client, scope, getGroupOrLake(opts));
+          const existing = await endpoints.get(client, g, "");
+          // Strip server-computed fields that Cribl's PATCH API rejects if included
+          const { status, notifications, ...cleanExisting } = existing;
+          const merged = { ...cleanExisting, ...JSON.parse(json) };
+          console.log(formatOutput(await endpoints.update(client, g, "", merged)));
+        } catch (e) { handleError(e); }
+      });
+    } else {
+      const sub = cmd.command("update").description(`Update a ${label}`).argument("<id>", `${label} ID`).argument("<json>", `${label} JSON config`);
+      addGroupOption(sub);
+      sub.action(async (id: string, json: string, opts) => {
+        try {
+          const client = getClient();
+          const g = await resolveGroupForScope(client, scope, getGroupOrLake(opts));
+          const existing = await endpoints.get(client, g, id);
+          // Strip server-computed fields that Cribl's PATCH API rejects if included
+          const { status, notifications, ...cleanExisting } = existing;
+          const merged = { ...cleanExisting, ...JSON.parse(json) };
+          console.log(formatOutput(await endpoints.update(client, g, id, merged)));
+        } catch (e) { handleError(e); }
+      });
+    }
   }
 
   if (ops.includes("delete")) {

@@ -127,8 +127,15 @@ export function registerVersionCommand(program: Command): void {
     .description("Commit and deploy config to workers in one step")
     .argument("<message>", "Commit message")
     .option("-g, --group <name>", "Worker group name")
+    .option("--yes", "Skip confirmation prompt")
     .action(async (message: string, opts) => {
       try {
+        if (!opts.yes) {
+          const groupDesc = opts.group ? `group "${opts.group}"` : "the default worker group";
+          console.error(`This will commit and deploy to ${groupDesc}. Use --yes to confirm, or --dry-run to preview.`);
+          process.exit(1);
+        }
+
         const client = getClient();
         const group = await resolveGroup(client, opts.group);
         const commitResult = await commitVersion(client, group, message);

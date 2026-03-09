@@ -84,6 +84,7 @@ export function registerDestinationsCommand(program: Command): void {
         const client = getClient();
         const group = await resolveGroup(client, opts.group);
         const existing = await getDestination(client, group, id);
+        // Strip server-computed fields that Cribl's PATCH API rejects if included
         const { status, notifications, ...cleanExisting } = existing as Record<string, unknown>;
         const merged = { ...cleanExisting, ...JSON.parse(json) };
         const data = await updateDestination(client, group, id, merged);

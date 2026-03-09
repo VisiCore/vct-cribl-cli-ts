@@ -5,8 +5,6 @@ import { runPreview } from "../../src/api/endpoints/preview.js";
 import { getLogger, setLogger } from "../../src/api/endpoints/logger.js";
 import { getProfiler, startProfiler } from "../../src/api/endpoints/profiler.js";
 import { getKmsConfig, getKmsHealth } from "../../src/api/endpoints/kms.js";
-import { getAuthSettings } from "../../src/api/endpoints/auth-settings.js";
-import { getGitSettings } from "../../src/api/endpoints/git-settings.js";
 import { createEndpoints } from "../../src/api/endpoint-factory.js";
 
 const BASE = "https://mock.cribl.cloud";
@@ -145,15 +143,17 @@ describe("Batch 1.2 - Global endpoints (via factory)", () => {
     expect(d.items[0].id).toBe("ff1");
   });
 
-  it("getAuthSettings", async () => {
+  it("getAuthSettings (singleton via factory)", async () => {
     nock(BASE).get("/api/v1/system/settings/auth").reply(200, { type: "local" });
-    const d = await getAuthSettings(client());
+    const endpoints = createEndpoints({ scope: "global", path: "system/settings/auth", singleton: true });
+    const d = await endpoints.get(client(), "_global_", "");
     expect(d).toHaveProperty("type");
   });
 
-  it("getGitSettings", async () => {
+  it("getGitSettings (singleton via factory)", async () => {
     nock(BASE).get("/api/v1/system/settings/git-settings").reply(200, { enabled: true });
-    const d = await getGitSettings(client());
+    const endpoints = createEndpoints({ scope: "global", path: "system/settings/git-settings", singleton: true });
+    const d = await endpoints.get(client(), "_global_", "");
     expect(d).toHaveProperty("enabled");
   });
 

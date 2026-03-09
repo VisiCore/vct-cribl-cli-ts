@@ -1,11 +1,13 @@
 import type { AxiosInstance } from "axios";
 import type { ApiListResponse } from "./types.js";
+import { unwrapItem } from "../utils/unwrap.js";
 
 export type EndpointScope = "group" | "global" | "search" | "lake";
 
 export interface EndpointConfig {
   scope: EndpointScope;
   path: string;
+  singleton?: boolean;
 }
 
 export interface CrudEndpoints {
@@ -31,7 +33,7 @@ function buildBasePath(scope: EndpointScope, groupOrLake: string, path: string):
 }
 
 export function createEndpoints(config: EndpointConfig): CrudEndpoints {
-  const { scope, path } = config;
+  const { scope, path, singleton } = config;
 
   return {
     async list(client, groupOrLake) {
@@ -42,10 +44,14 @@ export function createEndpoints(config: EndpointConfig): CrudEndpoints {
 
     async get(client, groupOrLake, id) {
       const base = buildBasePath(scope, groupOrLake, path);
+      if (singleton) {
+        const resp = await client.get<Record<string, unknown>>(base);
+        return resp.data;
+      }
       const resp = await client.get<{ items: Record<string, unknown>[] }>(
         `${base}/${encodeURIComponent(id)}`
       );
-      return resp.data.items?.[0] ?? resp.data;
+      return unwrapItem(resp.data as { items?: Record<string, unknown>[] } & Record<string, unknown>);
     },
 
     async create(client, groupOrLake, data) {
@@ -56,6 +62,10 @@ export function createEndpoints(config: EndpointConfig): CrudEndpoints {
 
     async update(client, groupOrLake, id, data) {
       const base = buildBasePath(scope, groupOrLake, path);
+      if (singleton) {
+        const resp = await client.patch<Record<string, unknown>>(base, data);
+        return resp.data;
+      }
       const resp = await client.patch<Record<string, unknown>>(
         `${base}/${encodeURIComponent(id)}`,
         data

@@ -48,6 +48,10 @@ export function loadConfig(opts: {
     );
   }
 
+  try { new URL(baseUrl); } catch {
+    throw new Error(`Invalid base URL: "${baseUrl}". Expected format: https://your-org.cribl.cloud`);
+  }
+
   return {
     profile: profileName,
     baseUrl: baseUrl.replace(/\/+$/, ""),

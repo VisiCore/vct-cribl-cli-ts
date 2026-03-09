@@ -1,5 +1,6 @@
 import type { AxiosInstance } from "axios";
 import type { ApiListResponse, Destination } from "../types.js";
+import { unwrapItem } from "../../utils/unwrap.js";
 
 function groupPath(group: string) {
   return `/api/v1/m/${encodeURIComponent(group)}`;
@@ -26,7 +27,7 @@ export async function getDestination(
   const resp = await client.get<{ items: Destination[] }>(
     `${groupPath(group)}/system/outputs/${encodeURIComponent(id)}`
   );
-  return resp.data.items?.[0] ?? resp.data;
+  return unwrapItem(resp.data as { items?: Destination[] } & Destination);
 }
 
 export async function createDestination(

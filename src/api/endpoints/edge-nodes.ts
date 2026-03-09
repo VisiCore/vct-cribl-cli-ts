@@ -75,7 +75,7 @@ export async function getEdgeNodeSystemInfo(
     `/api/v1/w/${encodeURIComponent(nodeId)}/system/info`,
     { params: { fields: "os" } }
   );
-  return resp.data.items[0];
+  return resp.data.items?.[0] ?? resp.data as unknown as EdgeNodeSystemInfo;
 }
 
 export async function getEdgeNodeInputs(

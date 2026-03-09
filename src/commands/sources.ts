@@ -47,8 +47,10 @@ export function registerSourcesCommand(program: Command): void {
     .requiredOption("-t, --type <type>", "Source type (e.g. syslog, http, tcp)")
     .requiredOption("--id <id>", "Source ID")
     .option("-g, --group <name>", "Worker group name")
-    .option("--host <host>", "Listen host")
+    .option("--host <host>", "Listen host (default: 0.0.0.0)")
     .option("--port <port>", "Listen port")
+    .option("--udp-port <port>", "UDP listen port (for syslog sources)")
+    .option("--tcp-port <port>", "TCP listen port (for syslog sources)")
     .option("--disabled", "Create source in disabled state")
     .option("--json-config <json>", "Full JSON config (overrides other options)")
     .option("--table", "Table output")
@@ -64,10 +66,12 @@ export function registerSourcesCommand(program: Command): void {
           sourceConfig = {
             id: opts.id,
             type: opts.type,
+            host: opts.host ?? "0.0.0.0",
             disabled: opts.disabled ?? false,
           };
-          if (opts.host) sourceConfig.host = opts.host;
           if (opts.port) sourceConfig.port = parseInt(opts.port, 10);
+          if (opts.udpPort) sourceConfig.udpPort = parseInt(opts.udpPort, 10);
+          if (opts.tcpPort) sourceConfig.tcpPort = parseInt(opts.tcpPort, 10);
         }
 
         const result = await createSource(client, group, sourceConfig);
@@ -88,6 +92,7 @@ export function registerSourcesCommand(program: Command): void {
         const client = getClient();
         const group = await resolveGroup(client, opts.group);
         const existing = await getSource(client, group, id);
+        // Strip server-computed fields that Cribl's PATCH API rejects if included
         const { status, notifications, ...cleanExisting } = existing as Record<string, unknown>;
         const merged = { ...cleanExisting, ...JSON.parse(json) };
         const data = await updateSource(client, group, id, merged);

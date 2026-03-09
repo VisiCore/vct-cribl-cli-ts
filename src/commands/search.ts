@@ -31,6 +31,7 @@ export function registerSearchCommand(program: Command): void {
     .option("--latest <time>", "Latest time", "now")
     .option("--wait", "Wait for results (poll until complete)")
     .option("--poll-interval <ms>", "Poll interval in ms", "2000")
+    .option("--timeout <ms>", "Max time to wait for search completion in ms", "600000")
     .option("--table", "Table output")
     .action(async (query: string, opts) => {
       try {
@@ -49,12 +50,19 @@ export function registerSearchCommand(program: Command): void {
 
         // Poll until complete
         const interval = parseInt(opts.pollInterval as string, 10);
+        const maxTimeout = parseInt(opts.timeout as string, 10);
+        const startTime = Date.now();
         const group = opts.group as string | undefined;
         let status = job;
 
+        const RUNNING_STATES = new Set(["running", "starting", "queued"]);
         process.stderr.write(`Search job ${job.id} started. Polling...\n`);
 
-        while (status.status !== "completed" && status.status !== "failed") {
+        while (RUNNING_STATES.has(status.status as string)) {
+          if (Date.now() - startTime > maxTimeout) {
+            console.error(`Search job timed out after ${maxTimeout / 1000}s. Job ID: ${job.id}`);
+            process.exit(1);
+          }
           await sleep(interval);
           status = await getSearchJobStatus(client, job.id, group);
           process.stderr.write(`  Status: ${status.status}\n`);

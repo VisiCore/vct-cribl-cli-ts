@@ -55,6 +55,8 @@ export const standardCommands: CommandConfig[] = [
   { name: "alerts",            description: "Alert notifications",            scope: "global", path: "notifications",            operations: ["list"] },
   { name: "feature-flags",     description: "Manage feature flags",           scope: "global", path: "settings/features",        operations: ["list", "get", "update"] },
   { name: "ai-settings",       description: "Manage AI settings",            scope: "global", path: "ai/settings/features",     operations: ["list", "get", "update"] },
+  { name: "auth-settings",    description: "Manage auth settings",          scope: "global", path: "system/settings/auth",      singleton: true, operations: ["get", "update"] },
+  { name: "git-settings",     description: "Manage git settings",           scope: "global", path: "system/settings/git-settings", singleton: true, operations: ["get", "update"] },
 
   // ── Search-scoped ──────────────────────────────────────────────
   { name: "macros",              description: "Manage search macros",         scope: "search", path: "macros" },

@@ -1,5 +1,6 @@
 import type { AxiosInstance } from "axios";
 import type { ApiListResponse, Pipeline } from "../types.js";
+import { unwrapItem } from "../../utils/unwrap.js";
 
 function groupPath(group: string) {
   return `/api/v1/m/${encodeURIComponent(group)}`;
@@ -23,7 +24,7 @@ export async function getPipeline(
   const resp = await client.get<{ items: Pipeline[] }>(
     `${groupPath(group)}/pipelines/${encodeURIComponent(id)}`
   );
-  return resp.data.items?.[0] ?? resp.data;
+  return unwrapItem(resp.data as { items?: Pipeline[] } & Pipeline);
 }
 
 export async function createPipeline(

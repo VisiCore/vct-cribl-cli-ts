@@ -1,5 +1,6 @@
 import type { AxiosInstance } from "axios";
 import type { ApiListResponse, SearchJob, SearchResult, SavedSearch } from "../types.js";
+import { unwrapItem } from "../../utils/unwrap.js";
 
 export interface RunSearchOpts {
   query: string;
@@ -21,12 +22,7 @@ export async function runSearch(
       latest: opts.latest ?? "now",
     }
   );
-  const data = resp.data as Record<string, unknown>;
-  // API wraps response in { items: [...] } — unwrap to get the job object
-  if (data.items && Array.isArray(data.items) && data.items.length > 0) {
-    return data.items[0] as SearchJob;
-  }
-  return data as unknown as SearchJob;
+  return unwrapItem(resp.data as { items?: SearchJob[] } & SearchJob);
 }
 
 export async function listSearchJobs(
@@ -49,11 +45,7 @@ export async function getSearchJobStatus(
   const resp = await client.get(
     `/api/v1/m/${encodeURIComponent(g)}/search/jobs/${encodeURIComponent(jobId)}`
   );
-  const data = resp.data as Record<string, unknown>;
-  if (data.items && Array.isArray(data.items) && data.items.length > 0) {
-    return data.items[0] as SearchJob;
-  }
-  return data as unknown as SearchJob;
+  return unwrapItem(resp.data as { items?: SearchJob[] } & SearchJob);
 }
 
 export async function getSearchResults(
