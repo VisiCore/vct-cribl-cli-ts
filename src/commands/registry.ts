@@ -62,7 +62,7 @@ export const standardCommands: CommandConfig[] = [
   { name: "dashboard-categories", description: "Manage dashboard categories", scope: "search", path: "dashboard-categories" },
   { name: "trust-policies",     description: "Manage trust policies",         scope: "search", path: "trust-policies" },
   { name: "datatypes",          description: "Manage datatypes",              scope: "search", path: "datatypes" },
-  { name: "datasets",           description: "Search datasets",               scope: "search", path: "datasets",                operations: ["list"] },
+  { name: "datasets",           description: "Manage search datasets",        scope: "search", path: "datasets" },
   { name: "dashboards",         description: "Search dashboards",             scope: "search", path: "dashboards",              operations: ["list", "get", "create", "delete"] },
   { name: "usage-groups",       description: "Manage usage groups",           scope: "search", path: "usage-groups",            operations: ["list", "get"] },
 
