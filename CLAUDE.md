@@ -92,7 +92,7 @@ For commands with non-CRUD logic (routes, edge, search, etc.):
 
 ## Test Patterns
 
-- **Unit tests**: vitest + nock for HTTP mocking (172 tests)
+- **Unit tests**: vitest + nock for HTTP mocking (207 tests)
 - Config tests mock `node:fs` to isolate from real `~/.criblrc`
 - Integration tests gated behind `CRIBL_INTEGRATION_TEST=true` env var
 - Test fixtures in `test/fixtures/`
@@ -141,6 +141,52 @@ npx tsx bin/cribl.ts edge metrics <hostname> -d 1h --summary
 5. For deeper analysis (per-core breakdown, network interface details), use `system-info-raw`
 6. Hostnames are case-insensitive — `pi5-cribl` and `Pi5-Cribl` both work
 7. Data resolution is 1 minute. Available history depends on node uptime and metrics retention
+
+## Contributing
+
+### Setup
+
+```bash
+git clone <repo-url> && cd cribl-cli
+npm install
+npm test              # verify everything passes
+```
+
+### Development Workflow
+
+1. **Run without building** — Use `npm run dev -- <command>` (tsx) during development instead of `npm run build` + `node dist/bin/cribl.js`
+2. **Type check** — Run `npm run lint` before committing to catch type errors
+3. **Test** — Run `npm test` to run the full suite (207 unit tests, ~1 second)
+4. **Integration tests** — Require a live Cribl instance: `CRIBL_INTEGRATION_TEST=true npm test`
+
+### Adding a New Command
+
+**Standard CRUD (most common)** — Add one line to `src/commands/registry.ts`. No endpoint or command file needed. See "How to Add a New Command Group" above for scope options.
+
+**Custom command** — For non-CRUD logic, create an endpoint file (`src/api/endpoints/`), a command file (`src/commands/`), register it in `src/cli.ts`, and add tests in `test/unit/`.
+
+### Writing Tests
+
+- Use **vitest + nock** for HTTP mocking — see any existing test in `test/unit/` for the pattern
+- Mock against `https://test.cribl.cloud` or `https://mock.cribl.cloud` as the base URL
+- Config tests should mock `node:fs` to avoid touching the real `~/.criblrc`
+- Add fixtures in `test/fixtures/` for reusable API response data
+
+### Code Style
+
+- **ESM only** — No CommonJS (`require`/`module.exports`). Use `import`/`export`
+- **Strict TypeScript** — `strict: true` in tsconfig. No `any` unless absolutely necessary
+- **URL-encode IDs** — Always use `encodeURIComponent()` for group names and resource IDs in URL paths
+- **Merge-on-update** — All update commands must fetch existing config, merge changes, then PATCH. Never send a partial PATCH without merging first (the Cribl API validates the entire schema)
+- **Error handling** — Use `handleError()` from `src/utils/errors.ts`. Errors go to stderr as JSON
+- **No unnecessary dependencies** — The production dependency list is intentionally minimal (axios, commander, cli-table3)
+
+### Project Structure Rules
+
+- Factory-generated commands live in `registry.ts` — don't create separate files for standard CRUD
+- Hand-written commands are the escape hatch for custom logic only
+- Keep endpoints and commands in separate layers (`src/api/endpoints/` vs `src/commands/`)
+- One registration call per command in `src/cli.ts`
 
 ## Workflow Skills
 
