@@ -130,6 +130,29 @@ npx tsx bin/cribl.ts edge metrics <hostname> -d 4h        # last 4 hours
 
 # Summary (min/max/avg) instead of full time series
 npx tsx bin/cribl.ts edge metrics <hostname> -d 1h --summary
+
+# Inspect a file on an Edge node (stat, hashes, head, hexdump) — Edge nodes only
+npx tsx bin/cribl.ts edge fileinspect <hostname> <path>
+
+# List directory contents on a specific node
+npx tsx bin/cribl.ts edge node-ls <hostname> <path>
+npx tsx bin/cribl.ts edge node-ls <hostname> <path> --stats  # include size, permissions, timestamps
+
+# Search or read file contents on a node
+npx tsx bin/cribl.ts edge file-search <hostname> <path>                  # read all lines
+npx tsx bin/cribl.ts edge file-search <hostname> <path> -q "error"       # search for string
+npx tsx bin/cribl.ts edge file-search <hostname> <path> -l 100           # limit lines (default 50)
+npx tsx bin/cribl.ts edge file-search <hostname> <path> --raw            # print only _raw content
+
+# Fleet-level commands (require -f <fleet>)
+npx tsx bin/cribl.ts edge containers -f <fleet>    # list containers
+npx tsx bin/cribl.ts edge processes -f <fleet>     # list processes
+npx tsx bin/cribl.ts edge logs -f <fleet>          # get edge logs
+npx tsx bin/cribl.ts edge metadata -f <fleet>      # get edge metadata
+npx tsx bin/cribl.ts edge events -f <fleet>        # get edge events
+npx tsx bin/cribl.ts edge files <path> -f <fleet>  # browse edge files
+npx tsx bin/cribl.ts edge ls <path> -f <fleet>     # list directory contents
+npx tsx bin/cribl.ts edge kube-logs -f <fleet>     # get Kubernetes logs
 ```
 
 **How to answer node questions:**
@@ -139,8 +162,13 @@ npx tsx bin/cribl.ts edge metrics <hostname> -d 1h --summary
 3. For trend/spike questions ("any CPU spikes?", "memory usage over time"), use `edge metrics <hostname> -d <duration> --summary` to get min/max/avg, or without `--summary` for the full minute-by-minute time series
 4. The `--summary` output shows min/max/avg for CPU%, memory%, disk%, and load avg — a max CPU much higher than avg indicates spikes
 5. For deeper analysis (per-core breakdown, network interface details), use `system-info-raw`
-6. Hostnames are case-insensitive — `pi5-cribl` and `Pi5-Cribl` both work
-7. Data resolution is 1 minute. Available history depends on node uptime and metrics retention
+6. For file inspection questions (hashes, contents, permissions), use `edge fileinspect <hostname> <path>` (Edge nodes only)
+7. To browse files on a node, use `edge node-ls <hostname> <path>` (add `--stats` for details)
+8. To search or read file contents, use `edge file-search <hostname> <path>` (with `-q` to search, `--raw` for plain output)
+9. For fleet-wide data (containers, processes, logs, metadata, events), use the fleet-level commands with `-f <fleet>`
+10. `fileinspect` and `node-ls` work on Edge nodes. For hybrid workers, `node-ls` falls back to listing Cribl log files, and `file-search` searches via the system/logs API
+11. Hostnames are case-insensitive — `pi5-cribl` and `Pi5-Cribl` both work
+12. Data resolution is 1 minute. Available history depends on node uptime and metrics retention
 
 ## Contributing
 
