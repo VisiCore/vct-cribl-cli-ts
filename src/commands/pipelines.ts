@@ -4,6 +4,7 @@ import { listPipelines, getPipeline, createPipeline, updatePipeline, deletePipel
 import { resolveGroup } from "../utils/group-resolver.js";
 import { formatOutput } from "../output/formatter.js";
 import { handleError } from "../utils/errors.js";
+import { parseJSON } from "../utils/validation.js";
 
 export function registerPipelinesCommand(program: Command): void {
   const cmd = program.command("pipelines").description("Manage pipelines");
@@ -50,7 +51,7 @@ export function registerPipelinesCommand(program: Command): void {
       try {
         const client = getClient();
         const group = await resolveGroup(client, opts.group);
-        const data = await createPipeline(client, group, JSON.parse(json));
+        const data = await createPipeline(client, group, parseJSON(json, "pipeline"));
         console.log(formatOutput(data));
       } catch (err) {
         handleError(err);
@@ -67,7 +68,7 @@ export function registerPipelinesCommand(program: Command): void {
       try {
         const client = getClient();
         const group = await resolveGroup(client, opts.group);
-        const data = await updatePipeline(client, group, id, JSON.parse(json));
+        const data = await updatePipeline(client, group, id, parseJSON(json, "pipeline"));
         console.log(formatOutput(data));
       } catch (err) {
         handleError(err);

@@ -4,6 +4,7 @@ import { listJobs, getJob, runJob, cancelJob, pauseJob, resumeJob, listJobConfig
 import { resolveGroup } from "../utils/group-resolver.js";
 import { formatOutput } from "../output/formatter.js";
 import { handleError } from "../utils/errors.js";
+import { parseJSON } from "../utils/validation.js";
 
 export function registerJobsCommand(program: Command): void {
   const cmd = program.command("jobs").description("Manage collector jobs");
@@ -50,7 +51,7 @@ export function registerJobsCommand(program: Command): void {
       try {
         const client = getClient();
         const group = await resolveGroup(client, opts.group);
-        const data = await runJob(client, group, JSON.parse(json));
+        const data = await runJob(client, group, parseJSON(json, "job"));
         console.log(formatOutput(data));
       } catch (err) {
         handleError(err);

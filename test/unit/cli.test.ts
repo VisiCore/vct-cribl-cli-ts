@@ -20,7 +20,7 @@ describe("CLI program", () => {
       "dataset-providers", "macros", "dashboard-categories",
       "trust-policies", "usage-groups", "datatypes",
       // Batch 3 - Lake
-      "lake-datasets", "storage-locations",
+      "lakes", "lake-datasets", "storage-locations",
       // Batch 1.1 - Group-scoped
       "collectors", "conditions", "executors", "parquet-schemas",
       "protobuf-libs", "hmac-functions", "sds-rules", "sds-rulesets",
@@ -178,7 +178,7 @@ describe("CLI program", () => {
     expect(subNames).toContain("delete");
   });
 
-  it("lookups should have create subcommand", () => {
+  it("lookups should have full CRUD subcommands", () => {
     const program = buildProgram();
     const cmd = program.commands.find((c) => c.name() === "lookups")!;
     const subNames = cmd.commands.map((c) => c.name());
@@ -186,6 +186,7 @@ describe("CLI program", () => {
     expect(subNames).toContain("list");
     expect(subNames).toContain("get");
     expect(subNames).toContain("create");
+    expect(subNames).toContain("update");
     expect(subNames).toContain("delete");
   });
 

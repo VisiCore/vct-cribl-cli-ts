@@ -4,6 +4,7 @@ import { getLogger, setLogger } from "../api/endpoints/logger.js";
 import { resolveGroup } from "../utils/group-resolver.js";
 import { formatOutput } from "../output/formatter.js";
 import { handleError } from "../utils/errors.js";
+import { parseJSON } from "../utils/validation.js";
 
 export function registerLoggerCommand(program: Command): void {
   const cmd = program.command("logger").description("Manage system logger");
@@ -33,7 +34,7 @@ export function registerLoggerCommand(program: Command): void {
       try {
         const client = getClient();
         const group = await resolveGroup(client, opts.group);
-        const data = await setLogger(client, group, JSON.parse(json));
+        const data = await setLogger(client, group, parseJSON(json, "logger"));
         console.log(formatOutput(data));
       } catch (err) {
         handleError(err);

@@ -31,7 +31,7 @@ export const standardCommands: CommandConfig[] = [
   { name: "certificates",     description: "Manage certificates",             scope: "group", path: "system/certificates",     operations: ["list", "get", "create", "delete"] },
   { name: "samples",          description: "Manage sample data",              scope: "group", path: "system/samples",           operations: ["list", "get", "create", "delete"] },
   { name: "scripts",          description: "Manage scripts",                  scope: "group", path: "system/scripts",           operations: ["list", "get", "create", "delete"] },
-  { name: "lookups",          description: "Manage lookup tables",            scope: "group", path: "system/lookups",           operations: ["list", "get", "create", "delete"] },
+  { name: "lookups",          description: "Manage lookup tables",            scope: "group", path: "system/lookups" },
   { name: "packs",            description: "Manage packs",                    scope: "group", path: "packs",                    operations: ["list", "get", "create", "delete"] },
   { name: "executors",        description: "Manage executors",                scope: "group", path: "executors",                operations: ["list", "get"] },
   { name: "hmac-functions",   description: "Manage HMAC functions",           scope: "group", path: "lib/hmac-functions",       operations: ["list", "get"] },
@@ -69,6 +69,7 @@ export const standardCommands: CommandConfig[] = [
   { name: "usage-groups",       description: "Manage usage groups",           scope: "search", path: "usage-groups",            operations: ["list", "get"] },
 
   // ── Lake-scoped ────────────────────────────────────────────────
+  { name: "lakes",               description: "List available lakes",          scope: "global", path: "products/lake/lakes", operations: ["list", "get"] },
   { name: "lake-datasets",      description: "Manage lake datasets",          scope: "lake", path: "datasets" },
   { name: "storage-locations",   description: "Manage lake storage locations", scope: "lake", path: "storage-locations" },
 ];

@@ -4,6 +4,7 @@ import { createEndpoints, type EndpointScope, type CrudEndpoints } from "../api/
 import { resolveGroup } from "../utils/group-resolver.js";
 import { formatOutput } from "../output/formatter.js";
 import { handleError } from "../utils/errors.js";
+import { parseJSON } from "../utils/validation.js";
 
 export type CrudOperation = "list" | "get" | "create" | "update" | "delete";
 
@@ -111,7 +112,7 @@ export function registerCrudCommand(program: Command, config: CommandConfig): vo
       try {
         const client = getClient();
         const g = await resolveGroupForScope(client, scope, getGroupOrLake(opts));
-        console.log(formatOutput(await endpoints.create(client, g, JSON.parse(json))));
+        console.log(formatOutput(await endpoints.create(client, g, parseJSON(json, label))));
       } catch (e) { handleError(e); }
     });
   }
@@ -127,7 +128,7 @@ export function registerCrudCommand(program: Command, config: CommandConfig): vo
           const existing = await endpoints.get(client, g, "");
           // Strip server-computed fields that Cribl's PATCH API rejects if included
           const { status, notifications, ...cleanExisting } = existing;
-          const merged = { ...cleanExisting, ...JSON.parse(json) };
+          const merged = { ...cleanExisting, ...parseJSON(json, label) };
           console.log(formatOutput(await endpoints.update(client, g, "", merged)));
         } catch (e) { handleError(e); }
       });
@@ -141,7 +142,7 @@ export function registerCrudCommand(program: Command, config: CommandConfig): vo
           const existing = await endpoints.get(client, g, id);
           // Strip server-computed fields that Cribl's PATCH API rejects if included
           const { status, notifications, ...cleanExisting } = existing;
-          const merged = { ...cleanExisting, ...JSON.parse(json) };
+          const merged = { ...cleanExisting, ...parseJSON(json, label) };
           console.log(formatOutput(await endpoints.update(client, g, id, merged)));
         } catch (e) { handleError(e); }
       });

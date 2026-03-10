@@ -3,6 +3,7 @@ import { getClient } from "../api/client.js";
 import { getKmsConfig, updateKmsConfig, getKmsHealth } from "../api/endpoints/kms.js";
 import { formatOutput } from "../output/formatter.js";
 import { handleError } from "../utils/errors.js";
+import { parseJSON } from "../utils/validation.js";
 
 export function registerKmsCommand(program: Command): void {
   const cmd = program.command("kms").description("Manage KMS configuration");
@@ -26,7 +27,7 @@ export function registerKmsCommand(program: Command): void {
     .argument("<json>", "KMS config JSON")
     .action(async (json: string) => {
       try {
-        const data = await updateKmsConfig(getClient(), JSON.parse(json));
+        const data = await updateKmsConfig(getClient(), parseJSON(json, "KMS config"));
         console.log(formatOutput(data));
       } catch (err) {
         handleError(err);

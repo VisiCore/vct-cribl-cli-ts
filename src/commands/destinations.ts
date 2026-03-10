@@ -4,6 +4,7 @@ import { listDestinations, getDestination, createDestination, updateDestination,
 import { resolveGroup } from "../utils/group-resolver.js";
 import { formatOutput } from "../output/formatter.js";
 import { handleError } from "../utils/errors.js";
+import { parseJSON } from "../utils/validation.js";
 
 export function registerDestinationsCommand(program: Command): void {
   const cmd = program.command("destinations").description("Manage destinations");
@@ -57,7 +58,7 @@ export function registerDestinationsCommand(program: Command): void {
 
         let destConfig: Record<string, unknown>;
         if (opts.jsonConfig) {
-          destConfig = JSON.parse(opts.jsonConfig);
+          destConfig = parseJSON(opts.jsonConfig, "destination");
         } else {
           destConfig = {
             id: opts.id,
@@ -86,7 +87,7 @@ export function registerDestinationsCommand(program: Command): void {
         const existing = await getDestination(client, group, id);
         // Strip server-computed fields that Cribl's PATCH API rejects if included
         const { status, notifications, ...cleanExisting } = existing as Record<string, unknown>;
-        const merged = { ...cleanExisting, ...JSON.parse(json) };
+        const merged = { ...cleanExisting, ...parseJSON(json, "destination") };
         const data = await updateDestination(client, group, id, merged);
         console.log(formatOutput(data));
       } catch (err) {

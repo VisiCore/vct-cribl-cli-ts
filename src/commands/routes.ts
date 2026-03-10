@@ -4,6 +4,7 @@ import { listRoutes, getRoute, updateRoute, deleteRoute } from "../api/endpoints
 import { resolveGroup } from "../utils/group-resolver.js";
 import { formatOutput } from "../output/formatter.js";
 import { handleError } from "../utils/errors.js";
+import { parseJSON } from "../utils/validation.js";
 
 export function registerRoutesCommand(program: Command): void {
   const cmd = program.command("routes").description("Manage routes");
@@ -52,7 +53,7 @@ export function registerRoutesCommand(program: Command): void {
       try {
         const client = getClient();
         const group = await resolveGroup(client, opts.group);
-        const newRoute = JSON.parse(json);
+        const newRoute = parseJSON(json, "route");
 
         // Fetch existing route table and append the new route
         const existing = await getRoute(client, group, "default") as Record<string, unknown>;
@@ -85,7 +86,7 @@ export function registerRoutesCommand(program: Command): void {
       try {
         const client = getClient();
         const group = await resolveGroup(client, opts.group);
-        const changes = JSON.parse(json);
+        const changes = parseJSON(json, "route");
 
         // Fetch existing route table, find the route, merge, and update the whole table
         const existing = await getRoute(client, group, "default") as Record<string, unknown>;

@@ -4,6 +4,7 @@ import { listSources, getSource, createSource, updateSource, deleteSource } from
 import { resolveGroup } from "../utils/group-resolver.js";
 import { formatOutput } from "../output/formatter.js";
 import { handleError } from "../utils/errors.js";
+import { parsePort, parseJSON } from "../utils/validation.js";
 
 export function registerSourcesCommand(program: Command): void {
   const cmd = program.command("sources").description("Manage sources");
@@ -61,7 +62,7 @@ export function registerSourcesCommand(program: Command): void {
 
         let sourceConfig: Record<string, unknown>;
         if (opts.jsonConfig) {
-          sourceConfig = JSON.parse(opts.jsonConfig);
+          sourceConfig = parseJSON(opts.jsonConfig, "source");
         } else {
           sourceConfig = {
             id: opts.id,
@@ -69,9 +70,9 @@ export function registerSourcesCommand(program: Command): void {
             host: opts.host ?? "0.0.0.0",
             disabled: opts.disabled ?? false,
           };
-          if (opts.port) sourceConfig.port = parseInt(opts.port, 10);
-          if (opts.udpPort) sourceConfig.udpPort = parseInt(opts.udpPort, 10);
-          if (opts.tcpPort) sourceConfig.tcpPort = parseInt(opts.tcpPort, 10);
+          if (opts.port) sourceConfig.port = parsePort(opts.port, "port");
+          if (opts.udpPort) sourceConfig.udpPort = parsePort(opts.udpPort, "UDP port");
+          if (opts.tcpPort) sourceConfig.tcpPort = parsePort(opts.tcpPort, "TCP port");
         }
 
         const result = await createSource(client, group, sourceConfig);
@@ -94,7 +95,7 @@ export function registerSourcesCommand(program: Command): void {
         const existing = await getSource(client, group, id);
         // Strip server-computed fields that Cribl's PATCH API rejects if included
         const { status, notifications, ...cleanExisting } = existing as Record<string, unknown>;
-        const merged = { ...cleanExisting, ...JSON.parse(json) };
+        const merged = { ...cleanExisting, ...parseJSON(json, "source") };
         const data = await updateSource(client, group, id, merged);
         console.log(formatOutput(data));
       } catch (err) {

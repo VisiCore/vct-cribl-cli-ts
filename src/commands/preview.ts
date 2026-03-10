@@ -4,6 +4,7 @@ import { runPreview } from "../api/endpoints/preview.js";
 import { resolveGroup } from "../utils/group-resolver.js";
 import { formatOutput } from "../output/formatter.js";
 import { handleError } from "../utils/errors.js";
+import { parseJSON } from "../utils/validation.js";
 
 export function registerPreviewCommand(program: Command): void {
   const cmd = program.command("preview").description("Preview data processing");
@@ -18,7 +19,7 @@ export function registerPreviewCommand(program: Command): void {
       try {
         const client = getClient();
         const group = await resolveGroup(client, opts.group);
-        const data = await runPreview(client, group, JSON.parse(json));
+        const data = await runPreview(client, group, parseJSON(json, "preview"));
         console.log(formatOutput(data, { table: opts.table }));
       } catch (err) {
         handleError(err);
