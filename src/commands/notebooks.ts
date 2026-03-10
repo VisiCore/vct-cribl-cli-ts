@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { getClient } from "../api/client.js";
-import { listNotebooks, getNotebook, addToNotebook, deleteNotebook } from "../api/endpoints/notebooks.js";
+import { listNotebooks, getNotebook, createNotebook, addToNotebook, deleteNotebook } from "../api/endpoints/notebooks.js";
 import { formatOutput } from "../output/formatter.js";
 import { handleError } from "../utils/errors.js";
 
@@ -31,6 +31,26 @@ export function registerNotebooksCommand(program: Command): void {
       try {
         const data = await getNotebook(getClient(), id, opts.group);
         console.log(formatOutput(data, { table: opts.table }));
+      } catch (err) {
+        handleError(err);
+      }
+    });
+
+  notebooks
+    .command("create")
+    .description("Create a new notebook")
+    .requiredOption("--name <name>", "Notebook name")
+    .option("--markdown <markdown>", "Initial markdown content")
+    .option("-g, --group <name>", "Worker group name")
+    .option("--table", "Table output")
+    .action(async (opts) => {
+      try {
+        const result = await createNotebook(getClient(), {
+          name: opts.name,
+          markdown: opts.markdown,
+          group: opts.group,
+        });
+        console.log(formatOutput(result, { table: opts.table }));
       } catch (err) {
         handleError(err);
       }
