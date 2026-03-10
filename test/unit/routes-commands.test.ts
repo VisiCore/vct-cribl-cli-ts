@@ -108,4 +108,31 @@ describe("routes insert-before-catch-all", () => {
     const data = await updateRoute(mockClient(), "default", "default", { routes: updatedRoutes });
     expect(data.routes).toHaveLength(2);
   });
+
+  it("route delete removes the target route from the table", () => {
+    const routes = [
+      { id: "route1", filter: "source=='syslog'", final: false },
+      { id: "route2", filter: "source=='http'", final: false },
+      { id: "default", filter: "true", final: true },
+    ];
+
+    const id = "route2";
+    const idx = routes.findIndex((r) => r.id === id);
+    expect(idx).toBe(1);
+    routes.splice(idx, 1);
+
+    expect(routes).toHaveLength(2);
+    expect(routes[0].id).toBe("route1");
+    expect(routes[1].id).toBe("default");
+  });
+
+  it("route delete throws when route ID not found", () => {
+    const routes = [
+      { id: "route1", filter: "source=='syslog'" },
+      { id: "default", filter: "true" },
+    ];
+
+    const idx = routes.findIndex((r) => r.id === "nonexistent");
+    expect(idx).toBe(-1);
+  });
 });

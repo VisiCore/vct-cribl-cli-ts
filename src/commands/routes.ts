@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { getClient } from "../api/client.js";
-import { listRoutes, getRoute, updateRoute, deleteRoute } from "../api/endpoints/routes.js";
+import { listRoutes, getRoute, updateRoute } from "../api/endpoints/routes.js";
 import { resolveGroup } from "../utils/group-resolver.js";
 import { formatOutput } from "../output/formatter.js";
 import { handleError } from "../utils/errors.js";
@@ -116,7 +116,20 @@ export function registerRoutesCommand(program: Command): void {
       try {
         const client = getClient();
         const group = await resolveGroup(client, opts.group);
-        await deleteRoute(client, group, id);
+
+        // Fetch existing route table, remove the target route, and PATCH back
+        const existing = await getRoute(client, group, "default") as Record<string, unknown>;
+        const items = (existing.items ?? [existing]) as Record<string, unknown>[];
+        const routeTable = items[0] ?? existing;
+        const routes = ((routeTable.routes ?? []) as Record<string, unknown>[]).slice();
+
+        const idx = routes.findIndex((r) => r.id === id);
+        if (idx === -1) {
+          throw new Error(`Route '${id}' not found in the route table.`);
+        }
+        routes.splice(idx, 1);
+
+        await updateRoute(client, group, "default", { routes });
         console.log(formatOutput({ message: `Route '${id}' deleted.` }));
       } catch (err) {
         handleError(err);
