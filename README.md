@@ -1,5 +1,7 @@
 # cribl-cli
 
+> **⚠️ This repository is no longer maintained.** Development has moved to the Python version: [VisiCore/vct-cribl-cli](https://github.com/VisiCore/vct-cribl-cli). Please use that repo for all new features, bug fixes, and contributions.
+
 A command-line interface for the Cribl Cloud REST API. Manage worker groups, pipelines, routes, search, and more directly from your terminal.
 
 ## Why a CLI Instead of MCP?
